@@ -1,0 +1,79 @@
+/* ============================================================
+   AdminInventario — estilos de página
+   Extraídos del bloque <style> en AdminInventario.jsx
+   ============================================================ */
+
+.action-btn {
+    background: none;
+    border: 1px solid #ddd;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.action-btn.edit {
+    color: #856404;
+}
+
+.action-btn.edit:hover {
+    background: #fff3cd;
+    border-color: #856404;
+}
+
+.action-btn.exit {
+    color: #004085;
+}
+
+.action-btn.exit:hover {
+    background: #e7f1ff;
+    border-color: #004085;
+}
+
+.action-btn.delete {
+    color: #721c24;
+}
+
+.action-btn.delete:hover {
+    background: #f8d7da;
+    border-color: #721c24;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #ffb703;
+    box-shadow: 0 0 0 0.25rem rgba(255, 183, 3, 0.25);
+}

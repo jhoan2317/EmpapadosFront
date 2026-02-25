@@ -1,0 +1,89 @@
+.auth-container {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: whitesmoke;
+  font-family: "Poppins", sans-serif;
+}
+
+.auth-box {
+  background: rgba(255, 255, 255, 0.85);
+  width: 350px;
+  padding: 40px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.login-logo {
+  width: 180px;
+  margin-bottom: 10px;
+}
+
+.input-group {
+  position: relative;
+  margin: 15px 0;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  background: white;
+}
+
+.input-icon {
+  background: #ffb703;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  flex-shrink: 0;
+  border-right: 1px solid #ccc;
+}
+
+.auth-box input {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.auth-box button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: #ffb703;
+  color: #fff;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 15px;
+  font-size: 16px;
+}
+
+.auth-box button:hover {
+  background: #eeb934;
+}
+
+.footer-text {
+  font-size: 0.85rem;
+  color: #777;
+  margin-top: 20px;
+}
+
+.error {
+  color: #d32f2f;
+  background: #ffebee;
+  padding: 8px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.link {
+  display: block;
+  margin-top: 15px;
+  font-size: 14px;
+  cursor: pointer;
+}

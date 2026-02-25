@@ -1,0 +1,100 @@
+/* ============================================================
+   AdminPedidos — estilos de página
+   Extraídos del bloque <style> en AdminPedidos.jsx
+   ============================================================ */
+
+.action-btn {
+    background: none;
+    border: 1px solid #ddd;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.action-btn.view {
+    color: #004085;
+}
+
+.action-btn.view:hover {
+    background: #e7f1ff;
+    border-color: #004085;
+}
+
+.action-btn.edit {
+    color: #856404;
+}
+
+.action-btn.edit:hover {
+    background: #fff3cd;
+    border-color: #856404;
+}
+
+.action-btn.delete {
+    color: #721c24;
+}
+
+.action-btn.delete:hover {
+    background: #f8d7da;
+    border-color: #721c24;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease;
+    overflow-y: auto;
+    /* Permite scroll si el modal es muy alto */
+    padding: 20px;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 550px;
+    max-height: 90vh;
+    /* Alto máximo del 90% de la pantalla */
+    overflow-y: auto;
+    /* Scroll interno si el contenido supera el max-height */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
