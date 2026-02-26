@@ -20,7 +20,9 @@ export default function Header({ onToggle }) {
                 return;
             }
 
-            ws.current = new WebSocket(`ws://${window.location.hostname}:8000/ws/notifications/`);
+            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+            const wsUrl = apiUrl.replace(/^http/, "ws");
+            ws.current = new WebSocket(`${wsUrl}/ws/notifications/`);
 
             ws.current.onopen = () => {
                 if (!isUnmounted.current) {
