@@ -29,12 +29,3 @@ export const logoutRequest = async () => {
     return response.data;
 };
 
-export const logoutRequest = async () => {
-    await axios.post(
-        `${API_URL}/usuarios/logout/`,
-        {},
-        {
-            withCredentials: true
-        }
-    );
-};
