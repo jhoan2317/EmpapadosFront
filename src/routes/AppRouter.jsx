@@ -5,7 +5,7 @@ import AdminProductos from "../pages/AdminProductos";
 import AdminPedidos from "../pages/AdminPedidos";
 import AdminInventario from "../pages/AdminInventario";
 import AdminReportes from "../pages/AdminReportes";
-import AdminGaleria from "../pages/AdminGaleria";
+import AdminCategorias from "../pages/AdminCategorias";
 import Landing from "../pages/Landing";
 import Home from "../pages/Home";
 import TrabajaConNosotros from "../pages/TrabajaConNosotros";
@@ -62,10 +62,10 @@ export default function AppRouter() {
         }
       />
       <Route
-        path="/dashboard/galeria"
+        path="/dashboard/categorias"
         element={
           <PrivateRoute>
-            <AdminGaleria />
+            <AdminCategorias />
           </PrivateRoute>
         }
       />

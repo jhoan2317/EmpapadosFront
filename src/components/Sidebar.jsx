@@ -34,9 +34,9 @@ export default function Sidebar({ user }) {
                     <span className="menu-text">Productos</span>
                 </NavLink>
 
-                <NavLink className="menu-item" to="/dashboard/galeria">
-                    <span className="menu-icon"><i className="bi bi-images"></i></span>
-                    <span className="menu-text">Galería</span>
+                <NavLink className="menu-item" to="/dashboard/categorias">
+                    <span className="menu-icon"><i className="bi bi-tags-fill"></i></span>
+                    <span className="menu-text">Categorías</span>
                 </NavLink>
 
                 <NavLink className="menu-item" to="/dashboard/inventario">
