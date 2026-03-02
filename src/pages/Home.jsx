@@ -303,7 +303,8 @@ export default function Home() {
                 ).join(" | "),
                 detalles: cart.map(item => ({
                     producto: item.product.id,
-                    cantidad: item.quantity
+                    cantidad: item.quantity,
+                    precio_unitario: calculateItemTotalPrice(item.product, item.personalization)
                 }))
             };
 
@@ -316,11 +317,11 @@ export default function Home() {
                 cliente_nombre: customerInfo.nombre,
                 direccion: customerInfo.direccion,
                 tipo_entrega: orderType,
-                total: cart.reduce((acc, item) => acc + (item.product.precio * item.quantity), 0),
+                total: cart.reduce((acc, item) => acc + (calculateItemTotalPrice(item.product, item.personalization) * item.quantity), 0),
                 items: cart.map(item => ({
                     cantidad: item.quantity,
                     producto_nombre: item.product.nombre,
-                    precio_total: item.product.precio * item.quantity,
+                    precio_total: calculateItemTotalPrice(item.product, item.personalization) * item.quantity,
                     adiciones: item.personalization.map(p => ({ nombre: p }))
                 }))
             };
@@ -328,10 +329,6 @@ export default function Home() {
             // Mostrar modal moderno en lugar de alert
             setOrderResponse(response);
             setShowSuccessModal(true);
-
-            // Imprimir automáticamente
-            printThermalTicket(ticketData, marketingData.config);
-            setLastTicketData(ticketData);
 
             // Limpiar tod@ después del éxito
             setCart([]);
@@ -919,9 +916,6 @@ export default function Home() {
                                     </div>
                                 </div>
                             </div>
-
-                            <h4 className="text-center mt-4 mb-3" style={{ fontSize: '14px', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Previsualización de Ticket</h4>
-                            <TicketPreview orderData={lastTicketData} config={marketingData.config} />
 
                             <button
                                 className="success-close-btn mt-4"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/landing.css";
-import logo from "../assets/react.svg";
+import logo from "../assets/logo.jpg";
 
 
 export default function Landing() {
@@ -26,7 +26,7 @@ export default function Landing() {
 
     return (
         <div className={`landing-container ${fadeOut ? "fade-out" : ""}`}>
-            <img src={logo} alt="react" className="landing-react" />
+            <img src={logo} alt="Logo" className="landing-logo" />
         </div>
     );
 }

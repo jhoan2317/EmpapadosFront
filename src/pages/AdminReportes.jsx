@@ -35,7 +35,7 @@ export default function AdminReportes() {
     const loadData = async (date, page = 1, type = "todas") => {
         try {
             showLoading(LOADING_CONFIG.TEXTS.LOADING);
-            const data = await getOrders(date, page, type);
+            const data = await getOrders(date, page, type, 'pagado');
             setOrders(Array.isArray(data) ? data : data.results);
             setTotalCount(data.count || (Array.isArray(data) ? data.length : 0));
         } catch (error) {

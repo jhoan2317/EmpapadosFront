@@ -62,7 +62,11 @@ export const printThermalTicket = (orderData, config) => {
             
             <div class="bold">CLIENTE:</div>
             <div>${orderData.cliente_nombre || 'Cliente General'}</div>
-            ${orderData.tipo_entrega === 'domicilio' ? `<div>DOMICILIO: ${orderData.direccion}</div>` : '<div>PARA MESA / RECOGER</div>'}
+            ${orderData.tipo_entrega === 'domicilio'
+            ? `<div>DOMICILIO: ${orderData.direccion}</div>
+                   <div>TEL: ${orderData.telefono || 'N/A'}</div>`
+            : `<div>MESA: #${orderData.numero_mesa || '---'}</div>`
+        }
             
             <div class="divider"></div>
             
@@ -76,6 +80,12 @@ export const printThermalTicket = (orderData, config) => {
                 <span>TOTAL:</span>
                 <span>$${(orderData.total || 0).toLocaleString()}</span>
             </div>
+            
+            ${orderData.observaciones ? `
+                <div class="divider"></div>
+                <div class="bold">NOTAS:</div>
+                <div style="font-size: 10px;">${orderData.observaciones}</div>
+            ` : ''}
             
             <div class="divider"></div>
             

@@ -1,11 +1,12 @@
 import api from '../api/axios';
 
-export const getOrders = async (date = null, page = 1, type = 'todas') => {
+export const getOrders = async (date = null, page = 1, type = 'todas', status = null) => {
     // Usamos el endpoint registrado en el router del backend: /api/pedidos/pedidos/
     const params = new URLSearchParams();
     if (date) params.append('fecha', date);
     if (page) params.append('page', page);
     if (type && type !== 'todas') params.append('tipo', type);
+    if (status) params.append('estado', status);
 
     const response = await api.get(`pedidos/pedidos/?${params.toString()}`);
     return response.data;

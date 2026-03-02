@@ -1,6 +1,8 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { getOrders, updateOrderStatus, deleteOrder, getOrder } from "../services/orderService";
+import { getGlobalConfig } from "../services/marketingService";
+import { printThermalTicket } from "../services/printService";
 import { useLoading } from "../context/LoadingContext";
 import { LOADING_CONFIG } from "../components/GlobalSpinner";
 import Header from "../components/Header";
@@ -15,6 +17,7 @@ import "../styles/admin-pedidos.css";
 const ViewIcon = () => <i className="bi bi-eye-fill" style={{ color: '#007bff' }}></i>;
 const EditIcon = () => <i className="bi bi-pencil-fill" style={{ color: '#ffb703' }}></i>;
 const TrashIcon = () => <i className="bi bi-trash3-fill" style={{ color: '#dc3545' }}></i>;
+const PrintIcon = () => <i className="bi bi-printer-fill" style={{ color: '#6c757d' }}></i>;
 
 export default function AdminPedidos() {
     const { user } = useContext(AuthContext);
@@ -28,11 +31,22 @@ export default function AdminPedidos() {
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [marketingConfig, setMarketingConfig] = useState(null);
     const PAGE_SIZE = 10;
 
     useEffect(() => {
         loadData(currentPage);
+        loadConfig();
     }, [currentPage]);
+
+    const loadConfig = async () => {
+        try {
+            const config = await getGlobalConfig();
+            setMarketingConfig(Array.isArray(config) ? config[0] : config);
+        } catch (error) {
+            console.error("Error cargando configuración:", error);
+        }
+    };
 
     // Bloquear scroll del body cuando hay un modal abierto
     useEffect(() => {
@@ -144,13 +158,34 @@ export default function AdminPedidos() {
         }, LOADING_CONFIG.DELAYS.CRUD_ACTION);
     };
 
+    const handlePrint = (order) => {
+        const ticketData = {
+            id: order.id,
+            puesto: order.puesto || order.id,
+            cliente_nombre: order.nombre_cliente,
+            telefono: order.telefono,
+            direccion: order.direccion,
+            numero_mesa: order.numero_mesa,
+            tipo_entrega: order.tipo_pedido,
+            total: parseFloat(order.total),
+            observaciones: order.observaciones,
+            items: order.detalles.map(d => ({
+                cantidad: d.cantidad,
+                producto_nombre: d.producto_nombre,
+                precio_total: parseFloat(d.subtotal),
+                adiciones: [] // Las adiciones ya están en observaciones o en el precio_unitario
+            }))
+        };
+        printThermalTicket(ticketData, marketingConfig);
+    };
+
     const getStatusStyle = (status) => {
         switch (status) {
-            case 'pendiente': return { backgroundColor: '#fff3cd', color: '#856404' };
-          //case 'procesando': return { backgroundColor: '#cce5ff', color: '#004085'};
-            case 'entregado': return { backgroundColor: '#d4edda', color: '#155724' };
-            case 'cancelado': return { backgroundColor: '#f8d7da', color: '#721c24' };
-            default: return {};
+            case 'pendiente': return { backgroundColor: '#fff3cd', color: '#856404' }; // Amarillo
+            case 'entregado': return { backgroundColor: '#cce5ff', color: '#004085' }; // Azul
+            case 'pagado': return { backgroundColor: '#d4edda', color: '#155724' };    // Verde
+            case 'cancelado': return { backgroundColor: '#f8d7da', color: '#721c24' }; // Rojo
+            default: return { backgroundColor: '#f8f9fa', color: '#333' };
         }
     };
 
@@ -181,7 +216,10 @@ export default function AdminPedidos() {
                                 </thead>
                                 <tbody>
                                     {orders.map(order => (
-                                        <tr key={order.id}>
+                                        <tr
+                                            key={order.id}
+                                            className={order.estado === 'cancelado' ? 'row-cancelled' : ''}
+                                        >
 
                                             <td>
                                                 <strong>{order.nombre_cliente}</strong><br />
@@ -213,6 +251,7 @@ export default function AdminPedidos() {
                                                     <button onClick={() => handleView(order)} className="action-btn view" title="Ver Detalle"><ViewIcon /></button>
                                                     <button onClick={() => handleOpenStatusModal(order)} className="action-btn edit" title="Cambiar Estado"><EditIcon /></button>
                                                     <button onClick={() => handleOpenDeleteConfirm(order.id)} className="action-btn delete" title="Eliminar"><TrashIcon /></button>
+                                                    <button onClick={() => handlePrint(order)} className="action-btn print" title="Imprimir Ticket"><PrintIcon /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -287,6 +326,7 @@ export default function AdminPedidos() {
                                 >
                                     <option value="pendiente">Pendiente</option>
                                     <option value="entregado">Entregado</option>
+                                    <option value="pagado">Pagado</option>
                                     <option value="cancelado">Cancelado</option>
                                 </select>
                                 <button
