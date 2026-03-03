@@ -615,7 +615,12 @@ export default function Home() {
                         <div className="sidebar-card cart-sidebar">
                             <div className="cart-header">
                                 <span>Tu Carrito ({cart.length})</span>
-                                <button className="close-cart-mobile" onClick={() => setIsMobileCartOpen(false)}>
+                                <button className="close-cart-mobile" onClick={() => {
+                                    setIsMobileCartOpen(false);
+                                    setCart([]);
+                                    setOrderType("");
+                                    setCustomerInfo({ nombre: "", telefono: "", direccion: "", mesa: "", formaPago: "" });
+                                }}>
                                     <i className="bi bi-x-circle"></i>
                                 </button>
                             </div>
@@ -708,7 +713,7 @@ export default function Home() {
                                                         <button onClick={() => updateCartQty(item.id, 1)}>+</button>
                                                     </div>
                                                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                                        <button className="edit-link" onClick={() => openProductModal(item.product, item)}>Editar</button>
+                                                        <button className="edit-link" onClick={() => { openProductModal(item.product, item); setIsMobileCartOpen(false); }}>Editar</button>
                                                         <button
                                                             onClick={() => removeFromCart(item.id)}
                                                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e63946', display: 'flex' }}
