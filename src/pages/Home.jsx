@@ -245,9 +245,10 @@ export default function Home() {
     };
 
     const togglePersonalization = (option) => {
+        const key = typeof option === 'string' ? option.trim() : option;
         setPersonalization(prev => ({
             ...prev,
-            [option]: !prev[option]
+            [key]: !prev[key]
         }));
     };
 
@@ -361,12 +362,22 @@ export default function Home() {
     ];
 
     const calculateItemTotalPrice = (product, activeOptions) => {
-        const base = parseFloat(product.precio);
+        if (!product) return 0;
+
+        // Limpiamos el precio por si viene como string con puntos/comas
+        let basePrice = product.precio;
+        if (typeof basePrice === 'string') {
+            basePrice = basePrice.replace(/[^0-9.]/g, '');
+        }
+        const base = parseFloat(basePrice) || 0;
+
         const extras = activeOptions.reduce((acc, optName) => {
-            const addOpt = additionOptions.find(o => o.name === optName);
-            const drinkOpt = drinkOptions.find(o => o.name === optName);
+            const trimmedName = optName.trim();
+            const addOpt = additionOptions.find(o => o.name.trim() === trimmedName);
+            const drinkOpt = drinkOptions.find(o => o.name.trim() === trimmedName);
             return acc + (addOpt?.price || 0) + (drinkOpt?.price || 0);
         }, 0);
+
         return base + extras;
     };
 
