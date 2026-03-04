@@ -64,18 +64,19 @@ body {
 }
 
 .logo-placeholder {
-    background-color: var(--primary);
-    color: var(--white);
-    padding: 10px;
-    border-radius: 50%;
-    font-weight: 800;
-    font-size: 12px;
-    text-align: center;
-    width: 42px;
-    height: 42px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.header-logo-img {
+    height: 200%;
+    width: auto;
+    object-fit: contain;
+    display: block;
 }
 
 .nav-links {

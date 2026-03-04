@@ -1,12 +1,11 @@
 import { NavLink } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 export default function Sidebar({ user }) {
     return (
         <aside className="app-sidebar">
             <div className="sidebar-brand">
-                <h2 className="brand-text">
-                    EmpapadosPop
-                </h2>
+                <img src={logo} alt="Logo" className="brand-logo" />
             </div>
 
             <div className="user-panel">

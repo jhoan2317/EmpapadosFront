@@ -5,6 +5,7 @@ import { createOrder } from "../services/orderService";
 import { getOptimizedImage } from "../services/cloudinaryService";
 import { getHeroSections, getFeatures, getTestimonials, getGlobalConfig, createTestimonial } from "../services/marketingService";
 import { printThermalTicket } from "../services/printService";
+import logo from "../assets/logo.png";
 import "../styles/home.css";
 
 // Icons
@@ -343,22 +344,37 @@ export default function Home() {
     };
 
     const customizationOptions = [
-        "SIN SALSA DE PAN", "SIN PEPINILLOS", "SIN LECHUGA",
-        "SIN QUESO AMERICANO", "SIN SALSA DE AJO", "SIN TOMATE",
-        "SIN TOCINETA", "SIN QUESO CHEDDAR"
+        "Sin Tomate", "Sin Cebolla", "Sin Ripido", "Sin Queso", "Sin Jamon",
+        "Sin Encebollado", "Sin Salsa de Ajo", "Sin Baño de Queso Fundido",
+        "Sin Maiz Tierno", "Sin Piña Calada", "Sin Extra Queso"
     ];
 
     const additionOptions = [
-        { name: "Adición de tocineta", price: 4000 },
-        { name: "Adición de jalapeños", price: 4000 },
-        { name: "Adición de queso americano", price: 4000 },
-        { name: "Adición de queso cheddar", price: 4000 }
+        { name: "Adicion de Queso", price: 3000 },
+        { name: "Adicion de Baño de Queso", price: 10000 },
+        { name: "Adicion de Maiz Tierno", price: 3000 },
+        { name: "Adicion de Tocineta", price: 3000 },
+        { name: "Adicion de Chorizo", price: 4000 },
+        { name: "Adicion de Pollo Desmechado", price: 4000 },
+        { name: "Adicion de Carne Desmechada", price: 5000 },
+        { name: "Adicion de Carne de Hamburguesa", price: 4000 },
+        { name: "Adicion de Maduritos", price: 2000 },
+        { name: "Adicion de Piña Calada", price: 2000 },
+        { name: "Adicion de Costilla Ahumada", price: 5000 },
+        { name: "Adicion de Papa", price: 3000 }
     ];
 
     const drinkOptions = [
-        { name: "Brisa con gas", price: 5000 },
-        { name: "Coca cola original", price: 5000 },
-        { name: "Coca cola sin azúcar", price: 5000 }
+        { name: "Gaseosa 350 ml", price: 3500 },
+        { name: "Gaseosa 500 ml", price: 4000 },
+        { name: "Gaseosa 1.5 Ltrs", price: 6000 },
+        { name: "Coca cola 1.5 Ltrs", price: 7000 },
+        { name: "Coca cola 3 Ltrs", price: 13000 },
+        { name: "Postobon 3 Ltrs", price: 10000 },
+        { name: "Hit en Caja", price: 5000 },
+        { name: "Hit Personal", price: 3500 },
+        { name: "Bretaña", price: 3000 },
+        { name: "Agua 350 ml", price: 2000 }
     ];
 
     const calculateItemTotalPrice = (product, activeOptions) => {
@@ -391,10 +407,8 @@ export default function Home() {
             {/* HEADER */}
             <header className="main-header">
                 <div className="header-left">
-                    <div className="logo-container">
-                        <div className="logo-placeholder" onClick={() => setView('landing')} style={{ cursor: 'pointer' }}>
-                            EMP
-                        </div>
+                    <div className="logo-placeholder" onClick={() => setView('landing')}>
+                        <img src={logo} alt="Logo" className="header-logo-img" />
                     </div>
                     <nav className="nav-links">
                         <button onClick={() => setView('landing')} style={{ background: 'none', border: 'none', color: 'inherit', fontWeight: view === 'landing' ? '800' : '400', cursor: 'pointer', fontSize: 'inherit', textTransform: 'uppercase' }}>
