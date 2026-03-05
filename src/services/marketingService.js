@@ -69,8 +69,17 @@ export const deleteTestimonial = async (id) => {
 };
 
 export const upsertConfig = async (id, data) => {
-    if (id) {
-        return (await api.put(`marketing/config/${id}/`, data)).data;
+    try {
+        if (id) {
+            return (await api.put(`marketing/config/${id}/`, data)).data;
+        }
+        return (await api.post('marketing/config/', data)).data;
+    } catch (error) {
+        // Si falla con 404 es que el registro no existe, intentamos crearlo con POST
+        if (id && error.response?.status === 404) {
+            console.warn("Configuración id 1 no encontrada, creando por primera vez...");
+            return (await api.post('marketing/config/', data)).data;
+        }
+        throw error;
     }
-    return (await api.post('marketing/config/', data)).data;
 };

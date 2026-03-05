@@ -998,8 +998,27 @@ export default function Home() {
             </footer>
 
             <div className="social-floating">
-                <a href="#" className="social-btn"><i className="bi bi-facebook" style={{ fontSize: '20px' }}></i></a>
-                <a href="#" className="social-btn"><i className="bi bi-instagram" style={{ fontSize: '20px' }}></i></a>
+                {marketingData.config?.contact_whatsapp && (
+                    <a
+                        href={`https://wa.me/${marketingData.config.contact_whatsapp.replace(/\D/g, '')}`}
+                        className="social-btn whatsapp"
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Ventas WhatsApp"
+                    >
+                        <i className="bi bi-whatsapp" style={{ fontSize: '20px' }}></i>
+                    </a>
+                )}
+                {marketingData.config?.facebook_url && (
+                    <a href={marketingData.config.facebook_url} className="social-btn facebook" target="_blank" rel="noreferrer">
+                        <i className="bi bi-facebook" style={{ fontSize: '20px' }}></i>
+                    </a>
+                )}
+                {marketingData.config?.instagram_url && (
+                    <a href={marketingData.config.instagram_url} className="social-btn instagram" target="_blank" rel="noreferrer">
+                        <i className="bi bi-instagram" style={{ fontSize: '20px' }}></i>
+                    </a>
+                )}
             </div>
         </div>
     );
