@@ -935,16 +935,6 @@ export default function Home() {
                             <h2 className="success-title">¡Pedido Recibido!</h2>
                             <div className="success-details">
                                 <p style={{ color: '#666', fontSize: '15px' }}>Tu pedido ha sido procesado con éxito. Prepárate para el mejor sabor.</p>
-                                <div className="order-stats">
-                                    <div className="stat-item">
-                                        <span className="stat-label">Puesto</span>
-                                        <span className="stat-value">#{orderResponse.puesto}</span>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span className="stat-label">Tiempo</span>
-                                        <span className="stat-value">{orderResponse.demora} min</span>
-                                    </div>
-                                </div>
                             </div>
 
                             <button
