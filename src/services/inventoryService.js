@@ -1,7 +1,10 @@
 import api from '../api/axios';
 
 export const getInventory = async (page = 1) => {
-    const response = await api.get(`inventario/inventario/?page=${page}`);
+    const url = page === null
+        ? 'inventario/inventario/?no_pagination=true'
+        : `inventario/inventario/?page=${page}`;
+    const response = await api.get(url);
     return response.data;
 };
 

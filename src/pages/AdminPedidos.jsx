@@ -18,6 +18,8 @@ const ViewIcon = () => <i className="bi bi-eye-fill" style={{ color: '#007bff' }
 const EditIcon = () => <i className="bi bi-pencil-fill" style={{ color: '#ffb703' }}></i>;
 const TrashIcon = () => <i className="bi bi-trash3-fill" style={{ color: '#dc3545' }}></i>;
 const PrintIcon = () => <i className="bi bi-printer-fill" style={{ color: '#6c757d' }}></i>;
+const CashIcon = () => <i className="bi bi-cash" style={{ color: '#28a745' }}></i>;
+const DeliverIcon = () => <i className="bi bi-check-square" style={{ color: '#00b4d8' }}></i>;
 
 export default function AdminPedidos() {
     const { user } = useContext(AuthContext);
@@ -252,6 +254,12 @@ export default function AdminPedidos() {
                                                     <button onClick={() => handleOpenStatusModal(order)} className="action-btn edit" title="Cambiar Estado"><EditIcon /></button>
                                                     <button onClick={() => handleOpenDeleteConfirm(order.id)} className="action-btn delete" title="Eliminar"><TrashIcon /></button>
                                                     <button onClick={() => handlePrint(order)} className="action-btn print" title="Imprimir Ticket"><PrintIcon /></button>
+                                                    {order.estado !== 'cancelado' && (
+                                                        <>
+                                                            <button onClick={() => handleStatusUpdate(order.id, 'entregado')} className="action-btn deliver" title="Marcar como Entregado"><DeliverIcon /></button>
+                                                            <button onClick={() => handleStatusUpdate(order.id, 'pagado')} className="action-btn pay" title="Marcar como Pagado"><CashIcon /></button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -325,8 +333,6 @@ export default function AdminPedidos() {
                                     style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
                                 >
                                     <option value="pendiente">Pendiente</option>
-                                    <option value="entregado">Entregado</option>
-                                    <option value="pagado">Pagado</option>
                                     <option value="cancelado">Cancelado</option>
                                 </select>
                                 <button

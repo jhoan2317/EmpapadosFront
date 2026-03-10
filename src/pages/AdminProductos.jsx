@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, getProduct } from "../services/productService";
+import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, getProduct, createRecipe, updateRecipe, deleteRecipe } from "../services/productService";
+import { getInventory } from "../services/inventoryService";
 import { getImages } from "../services/galleryService";
 import { uploadImageCloudinary, getOptimizedImage } from "../services/cloudinaryService";
 import { useLoading } from "../context/LoadingContext";
@@ -37,6 +38,10 @@ export default function AdminProductos() {
     const [totalCount, setTotalCount] = useState(0);
     const PAGE_SIZE = 10;
     const [isUploading, setIsUploading] = useState(false);
+    const [showRecipeModal, setShowRecipeModal] = useState(false);
+    const [recipeData, setRecipeData] = useState([]);
+    const [allIngredients, setAllIngredients] = useState([]);
+    const [newIngredient, setNewIngredient] = useState({ ingrediente: "", cantidad: "" });
 
     const [formData, setFormData] = useState({
         nombre: "",
@@ -225,6 +230,60 @@ export default function AdminProductos() {
         }, LOADING_CONFIG.DELAYS.CRUD_ACTION);
     };
 
+    const handleOpenRecipeModal = async (prod) => {
+        showLoading("Cargando receta...");
+        try {
+            const [inventario, prodDetailed] = await Promise.all([
+                getInventory(null), // Traer todo el inventario
+                getProduct(prod.id)
+            ]);
+            setAllIngredients(Array.isArray(inventario) ? inventario : (inventario.results || []));
+            setRecipeData(prodDetailed.receta || []);
+            setEditingId(prod.id);
+            setShowRecipeModal(true);
+        } catch (error) {
+            console.error("Error al cargar receta:", error);
+        } finally {
+            hideLoading();
+        }
+    };
+
+    const handleAddIngredientToRecipe = async () => {
+        if (!newIngredient.ingrediente || !newIngredient.cantidad) return;
+
+        try {
+            showLoading("Agregando ingrediente...");
+            const data = {
+                producto: editingId,
+                ingrediente: newIngredient.ingrediente,
+                cantidad: newIngredient.cantidad
+            };
+            const added = await createRecipe(data);
+
+            // Recargar producto para tener la receta actualizada con nombres
+            const updatedProd = await getProduct(editingId);
+            setRecipeData(updatedProd.receta);
+            setNewIngredient({ ingrediente: "", cantidad: "" });
+        } catch (error) {
+            console.error("Error al agregar ingrediente:", error);
+            setModalConfig({ isOpen: true, title: "Error", message: "No se pudo agregar el ingrediente a la receta.", type: "error" });
+        } finally {
+            hideLoading();
+        }
+    };
+
+    const handleRemoveIngredientFromRecipe = async (recipeId) => {
+        try {
+            showLoading("Eliminando ingrediente...");
+            await deleteRecipe(recipeId);
+            setRecipeData(recipeData.filter(r => r.id !== recipeId));
+        } catch (error) {
+            console.error("Error al eliminar ingrediente:", error);
+        } finally {
+            hideLoading();
+        }
+    };
+
     return (
         <div className={`dashboard-root ${collapsed ? "sidebar-collapsed" : ""}`}>
             <Header onToggle={() => setCollapsed(!collapsed)} />
@@ -277,6 +336,7 @@ export default function AdminProductos() {
                                                 <td>
                                                     <div className="action-btns" style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                                                         <button onClick={() => handleView(prod)} className="action-btn view" title="Ver"><ViewIcon /></button>
+                                                        <button onClick={() => handleOpenRecipeModal(prod)} className="action-btn recipe" title="Receta" style={{ background: '#00b4d8', border: 'none', borderRadius: '4px', padding: '4px 8px' }}><i className="bi bi-list-check" style={{ color: 'white' }}></i></button>
                                                         <button onClick={() => handleEdit(prod)} className="action-btn edit" title="Editar"><EditIcon /></button>
                                                         <button onClick={() => handleOpenDeleteConfirm(prod.id)} className="action-btn delete" title="Eliminar"><TrashIcon /></button>
                                                     </div>
@@ -419,6 +479,75 @@ export default function AdminProductos() {
                         </div>
                     </div>
                 )}
+                {/* MODAL GESTIÓN DE RECETA */}
+                {showRecipeModal && (
+                    <div className="modal-overlay" onClick={() => setShowRecipeModal(false)}>
+                        <div className="modal-content" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h3>Receta: {products.find(p => p.id === editingId)?.nombre}</h3>
+                                <button className="close-btn" onClick={() => setShowRecipeModal(false)}>&times;</button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="add-ingredient-form mb-4 p-3" style={{ background: '#f8f9fa', borderRadius: '8px' }}>
+                                    <h5 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '15px' }}>Agregar Insumo/Ingrediente</h5>
+                                    <div className="row g-2">
+                                        <div className="col-7">
+                                            <select
+                                                className="form-select"
+                                                value={newIngredient.ingrediente}
+                                                onChange={e => setNewIngredient({ ...newIngredient, ingrediente: e.target.value })}
+                                            >
+                                                <option value="">Seleccione ingrediente...</option>
+                                                {allIngredients.map(ing => (
+                                                    <option key={ing.id} value={ing.id}>{ing.nombre_ingrediente} ({ing.unidad_medida})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="col-3">
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                placeholder="Cant."
+                                                value={newIngredient.cantidad}
+                                                onChange={e => setNewIngredient({ ...newIngredient, cantidad: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="col-2">
+                                            <button className="btn btn-success w-100" onClick={handleAddIngredientToRecipe}>
+                                                <i className="bi bi-plus-lg"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="recipe-list">
+                                    <h5 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>Ingredientes Actuales</h5>
+                                    {recipeData.length > 0 ? (
+                                        <div className="list-group">
+                                            {recipeData.map(item => (
+                                                <div key={item.id} className="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{item.ingrediente_nombre}</strong>
+                                                        <span className="ms-2 text-muted">({item.cantidad} {item.unidad_medida})</span>
+                                                    </div>
+                                                    <button
+                                                        className="btn btn-sm btn-outline-danger"
+                                                        onClick={() => handleRemoveIngredientFromRecipe(item.id)}
+                                                    >
+                                                        <i className="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-center text-muted p-3">Este producto aún no tiene receta definida.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* MODAL CONFIRMACIÓN ELIMINAR */}
                 {confirmDelete.isOpen && (
                     <div className="modal-overlay" onClick={() => setConfirmDelete({ isOpen: false, id: null })}>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { getInventory, updateInventory, createInventoryEntry, registerInventoryExit, getInventoryItem, getMovements, deleteInventoryEntry } from "../services/inventoryService";
+import { getCategories } from "../services/productService";
 import { useLoading } from "../context/LoadingContext";
 import { LOADING_CONFIG } from "../components/GlobalSpinner";
 import Header from "../components/Header";
@@ -20,10 +21,12 @@ export default function AdminInventario() {
     const { showLoading, hideLoading } = useLoading();
     const [collapsed, setCollapsed] = useState(false);
     const [inventory, setInventory] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
         nombre_ingrediente: "",
+        categoria: "",
         stock: 0,
         stock_minimo: 0,
         unidad_medida: "unidades"
@@ -65,9 +68,13 @@ export default function AdminInventario() {
     const loadData = async (page = 1) => {
         try {
             showLoading(LOADING_CONFIG.TEXTS.LOADING);
-            const data = await getInventory(page);
+            const [data, catsData] = await Promise.all([
+                getInventory(page),
+                getCategories()
+            ]);
             setInventory(Array.isArray(data) ? data : (data.results || []));
             setTotalCount(data.count || (Array.isArray(data) ? data.length : 0));
+            setCategories(Array.isArray(catsData) ? catsData : (catsData.results || []));
         } catch (error) {
             console.error("Error cargando inventario:", error);
         } finally {
@@ -93,7 +100,7 @@ export default function AdminInventario() {
 
     const resetForm = () => {
         setEditingId(null);
-        setFormData({ nombre_ingrediente: "", stock: 0, stock_minimo: 0, unidad_medida: "unidades" });
+        setFormData({ nombre_ingrediente: "", categoria: "", stock: 0, stock_minimo: 0, unidad_medida: "unidades" });
         setShowModal(false);
     };
 
@@ -125,6 +132,7 @@ export default function AdminInventario() {
             setEditingId(item.id);
             setFormData({
                 nombre_ingrediente: item.nombre_ingrediente,
+                categoria: item.categoria || "",
                 stock: item.stock,
                 stock_minimo: item.stock_minimo,
                 unidad_medida: item.unidad_medida
@@ -221,6 +229,7 @@ export default function AdminInventario() {
                                 <thead>
                                     <tr>
                                         <th>Ingrediente</th>
+                                        <th>Categoría</th>
                                         <th>Stock Actual</th>
                                         <th>Stock Mínimo</th>
                                         <th>Unidad</th>
@@ -234,6 +243,7 @@ export default function AdminInventario() {
                                         return (
                                             <tr key={item.id}>
                                                 <td style={{ fontWeight: '600' }}>{item.nombre_ingrediente}</td>
+                                                <td><span className="badge bg-light text-dark" style={{ fontSize: '11px', border: '1px solid #ddd' }}>{item.categoria_nombre || 'General'}</span></td>
                                                 <td style={{ fontWeight: '700', color: isLowStock ? '#e63946' : 'inherit' }}>{parseFloat(item.stock).toFixed(2)}</td>
                                                 <td>{parseFloat(item.stock_minimo).toFixed(2)}</td>
                                                 <td><span style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>{item.unidad_medida}</span></td>
@@ -252,9 +262,7 @@ export default function AdminInventario() {
                                             </tr>
                                         )
                                     }) : (
-                                        <tr>
-                                            <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>No hay ingredientes registrados en el inventario.</td>
-                                        </tr>
+                                        <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>No hay ingredientes registrados en el inventario.</td>
                                     )}
                                 </tbody>
                             </table>
@@ -386,6 +394,21 @@ export default function AdminInventario() {
                                                 style={{ height: '48px', borderRadius: '6px', border: '1px solid #dee2e6' }}
                                             />
                                         </div>
+                                        <div className="mb-3 text-center" style={{ gridColumn: '1 / -1' }}>
+                                            <label style={{ fontWeight: '600', display: 'block', marginBottom: '8px' }}>Categoría (Vinculada a Producto)</label>
+                                            <select
+                                                className="form-select px-3"
+                                                name="categoria"
+                                                value={formData.categoria}
+                                                onChange={handleInputChange}
+                                                style={{ height: '48px', borderRadius: '6px', border: '1px solid #dee2e6' }}
+                                            >
+                                                <option value="">Seleccione una categoría</option>
+                                                {categories.map(cat => (
+                                                    <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div style={{ marginTop: '25px' }}>
                                         <button
@@ -417,46 +440,49 @@ export default function AdminInventario() {
                             </div>
                         </div>
                     </div>
-                )}
-            </main>
+                )
+                }
+            </main >
 
             {/* Modal de Salida */}
-            {exitModalOpen && (
-                <div className="modal-overlay" onClick={() => setExitModalOpen(false)}>
-                    <div className="modal-content" style={{ maxWidth: '400px', padding: '30px' }} onClick={e => e.stopPropagation()}>
-                        <h3 style={{ marginBottom: '20px' }}>Registrar Salida: {exitData.nombre}</h3>
-                        <form onSubmit={handleExitSubmit}>
-                            <div className="form-group">
-                                <label>Cantidad a retirar</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={exitData.cantidad}
-                                    onChange={e => setExitData({ ...exitData, cantidad: e.target.value })}
-                                    required
-                                    min="0.01"
-                                    placeholder="0.00"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Motivo</label>
-                                <textarea
-                                    value={exitData.motivo}
-                                    onChange={e => setExitData({ ...exitData, motivo: e.target.value })}
-                                    placeholder="Ej: Merma, Uso interno, Caducidad..."
-                                    rows="3"
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                                />
-                            </div>
-                            <div className="modal-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
-                                <button type="button" onClick={() => setExitModalOpen(false)} style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
-                                <button type="submit" style={{ background: '#e63946', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Confirmar Salida</button>
-                            </div>
-                        </form>
+            {
+                exitModalOpen && (
+                    <div className="modal-overlay" onClick={() => setExitModalOpen(false)}>
+                        <div className="modal-content" style={{ maxWidth: '400px', padding: '30px' }} onClick={e => e.stopPropagation()}>
+                            <h3 style={{ marginBottom: '20px' }}>Registrar Salida: {exitData.nombre}</h3>
+                            <form onSubmit={handleExitSubmit}>
+                                <div className="form-group">
+                                    <label>Cantidad a retirar</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={exitData.cantidad}
+                                        onChange={e => setExitData({ ...exitData, cantidad: e.target.value })}
+                                        required
+                                        min="0.01"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Motivo</label>
+                                    <textarea
+                                        value={exitData.motivo}
+                                        onChange={e => setExitData({ ...exitData, motivo: e.target.value })}
+                                        placeholder="Ej: Merma, Uso interno, Caducidad..."
+                                        rows="3"
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    />
+                                </div>
+                                <div className="modal-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                                    <button type="button" onClick={() => setExitModalOpen(false)} style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
+                                    <button type="submit" style={{ background: '#e63946', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Confirmar Salida</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-        </div>
+        </div >
     );
 }

@@ -46,3 +46,19 @@ export const deleteCategory = async (id) => {
     const response = await api.delete(`productos/categorias/${id}/`);
     return response.data;
 };
+
+// RECETAS
+export const createRecipe = async (recipeData) => {
+    const response = await api.post('productos/recetas/', recipeData);
+    return response.data;
+};
+
+export const updateRecipe = async (id, recipeData) => {
+    const response = await api.put(`productos/recetas/${id}/`, recipeData);
+    return response.data;
+};
+
+export const deleteRecipe = async (id) => {
+    const response = await api.delete(`productos/recetas/${id}/`);
+    return response.data;
+};
