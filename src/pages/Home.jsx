@@ -346,7 +346,8 @@ export default function Home() {
     const customizationOptions = [
         "Sin Tomate", "Sin Cebolla", "Sin Ripido", "Sin Queso", "Sin Jamon",
         "Sin Encebollado", "Sin Salsa de Ajo", "Sin Baño de Queso Fundido",
-        "Sin Maiz Tierno", "Sin Piña Calada", "Sin Extra Queso"
+        "Sin Maiz Tierno", "Sin Piña Calada", "Sin Extra Queso", "Sin Salsa Rosada",
+        "Sin Salsa de Piña", "Sin Salsa de Tomate"
     ];
 
     const additionOptions = [
@@ -880,29 +881,6 @@ export default function Home() {
                                         ))}
                                     </div>
 
-                                    <div className="customization-header">
-                                        <h4>Elige tu bebida</h4>
-                                        <span className="optional-badge">Opcional</span>
-                                    </div>
-                                    <p className="selection-note">Selecciona tu bebida</p>
-
-                                    <div className="options-list">
-                                        {drinkOptions.map(opt => (
-                                            <div className="form-check d-flex justify-content-between align-items-center" key={opt.name} onClick={() => togglePersonalization(opt.name)} style={{ padding: '12px 0', borderBottom: '1px solid #f8f8f8', cursor: 'pointer' }}>
-                                                <label className="form-check-label" style={{ cursor: 'pointer', flex: 1, margin: 0 }}>
-                                                    <div style={{ fontWeight: '700', fontSize: '14px' }}>{opt.name}</div>
-                                                    <div style={{ fontSize: '12px', color: '#666' }}>+ ${opt.price.toLocaleString()}</div>
-                                                </label>
-                                                <input
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    checked={personalization[opt.name] || false}
-                                                    readOnly
-                                                    style={{ width: '22px', height: '22px', margin: 0, cursor: 'pointer', float: 'none' }}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
 
                                 <div className="modal-footer">
