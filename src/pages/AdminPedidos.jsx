@@ -1,7 +1,8 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { getOrders, updateOrderStatus, deleteOrder, getOrder } from "../services/orderService";
+import { getOrders, updateOrderStatus, updateOrder, deleteOrder, getOrder } from "../services/orderService";
 import { getGlobalConfig } from "../services/marketingService";
+import { getProducts } from "../services/productService";
 import { printThermalTicket } from "../services/printService";
 import { useLoading } from "../context/LoadingContext";
 import { LOADING_CONFIG } from "../components/GlobalSpinner";
@@ -34,12 +35,31 @@ export default function AdminPedidos() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const [marketingConfig, setMarketingConfig] = useState(null);
+    const [products, setProducts] = useState([]);
+    
+    // States for editing order
+    const [editedOrderStatus, setEditedOrderStatus] = useState("");
+    const [editedOrderNotes, setEditedOrderNotes] = useState("");
+    const [editedOrderDetails, setEditedOrderDetails] = useState([]);
+    const [newProductSelected, setNewProductSelected] = useState("");
+    const [newProductQuantity, setNewProductQuantity] = useState(1);
+    
     const PAGE_SIZE = 10;
 
     useEffect(() => {
         loadData(currentPage);
         loadConfig();
+        loadProducts();
     }, [currentPage]);
+    
+    const loadProducts = async () => {
+        try {
+            const prods = await getProducts();
+            setProducts(Array.isArray(prods) ? prods : (prods.results || []));
+        } catch (error) {
+            console.error("Error cargando productos:", error);
+        }
+    };
 
     const loadConfig = async () => {
         try {
@@ -106,18 +126,89 @@ export default function AdminPedidos() {
         }
     };
 
-    const handleOpenStatusModal = async (orderOrId) => {
+    const handleEditOrder = async (orderOrId) => {
         const id = typeof orderOrId === 'object' ? orderOrId.id : orderOrId;
         showLoading(LOADING_CONFIG.TEXTS.RECORD_PREP);
         try {
             const order = await getOrder(id);
             setEditingOrder(order);
+            setEditedOrderStatus(order.estado);
+            setEditedOrderNotes(order.observaciones || "");
+            setEditedOrderDetails(order.detalles.map(d => ({...d})));
+            setNewProductSelected("");
+            setNewProductQuantity(1);
         } catch (error) {
             console.error("Error al obtener pedido:", error);
             setModalConfig({ isOpen: true, title: "Error", message: "No se pudo preparar el cambio de estado.", type: "error" });
         } finally {
             hideLoading();
         }
+    };
+
+    const handleSaveOrderChanges = async () => {
+        if (!editingOrder) return;
+        try {
+            showLoading(LOADING_CONFIG.TEXTS.SAVING);
+            
+            const updatedData = {
+                estado: editedOrderStatus,
+                observaciones: editedOrderNotes,
+                detalles: editedOrderDetails.map(d => ({
+                    producto: d.producto,
+                    cantidad: d.cantidad
+                }))
+            };
+            
+            await updateOrder(editingOrder.id, updatedData);
+            setEditingOrder(null);
+            setModalConfig({ isOpen: true, title: "Pedido Actualizado", message: "Los cambios en el pedido se guardaron correctamente.", type: "success" });
+            await loadData(currentPage);
+        } catch (error) {
+            console.error("Error al actualizar pedido:", error);
+            setModalConfig({ isOpen: true, title: "Error", message: "No se pudieron guardar los cambios del pedido.", type: "error" });
+        } finally {
+            hideLoading();
+        }
+    };
+    
+    const handleAddProductToOrder = () => {
+        if (!newProductSelected) return;
+        const selectedProdObj = products.find(p => p.id === parseInt(newProductSelected));
+        if (!selectedProdObj) return;
+        
+        const existingIndex = editedOrderDetails.findIndex(d => d.producto === selectedProdObj.id);
+        
+        let updatedDetails = [...editedOrderDetails];
+        if (existingIndex >= 0) {
+            updatedDetails[existingIndex].cantidad += parseInt(newProductQuantity);
+            updatedDetails[existingIndex].subtotal = parseFloat(updatedDetails[existingIndex].precio_unitario || selectedProdObj.precio) * updatedDetails[existingIndex].cantidad;
+        } else {
+            updatedDetails.push({
+                producto: selectedProdObj.id,
+                producto_nombre: selectedProdObj.nombre,
+                cantidad: parseInt(newProductQuantity),
+                precio_unitario: selectedProdObj.precio,
+                subtotal: parseFloat(selectedProdObj.precio) * parseInt(newProductQuantity)
+            });
+        }
+        
+        setEditedOrderDetails(updatedDetails);
+        setNewProductSelected("");
+        setNewProductQuantity(1);
+    };
+
+    const handleUpdateDetailQuantity = (index, newQty) => {
+        if (newQty < 1) return;
+        let updatedDetails = [...editedOrderDetails];
+        updatedDetails[index].cantidad = newQty;
+        updatedDetails[index].subtotal = parseFloat(updatedDetails[index].precio_unitario || 0) * newQty; // This is just for UI visualization
+        setEditedOrderDetails(updatedDetails);
+    };
+
+    const handleRemoveDetail = (index) => {
+        let updatedDetails = [...editedOrderDetails];
+        updatedDetails.splice(index, 1);
+        setEditedOrderDetails(updatedDetails);
     };
 
     const handleOpenDeleteConfirm = (id) => {
@@ -251,7 +342,7 @@ export default function AdminPedidos() {
                                             <td>
                                                 <div className="action-btns" style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                                                     <button onClick={() => handleView(order)} className="action-btn view" title="Ver Detalle"><ViewIcon /></button>
-                                                    <button onClick={() => handleOpenStatusModal(order)} className="action-btn edit" title="Cambiar Estado"><EditIcon /></button>
+                                                    <button onClick={() => handleEditOrder(order)} className="action-btn edit" title="Editar Pedido"><EditIcon /></button>
                                                     <button onClick={() => handleOpenDeleteConfirm(order.id)} className="action-btn delete" title="Eliminar"><TrashIcon /></button>
                                                     <button onClick={() => handlePrint(order)} className="action-btn print" title="Imprimir Ticket"><PrintIcon /></button>
                                                     {order.estado !== 'cancelado' && (
@@ -317,30 +408,137 @@ export default function AdminPedidos() {
                     </div>
                 )}
 
-                {/* MODAL EDITAR ESTADO */}
+                {/* MODAL EDITAR PEDIDO */}
                 {editingOrder && (
                     <div className="modal-overlay" onClick={() => setEditingOrder(null)}>
-                        <div className="modal-content" style={{ maxWidth: '350px' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-content" style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
-                                <h3>Cambiar Estado #{editingOrder.id}</h3>
+                                <h3>Editar Pedido #{editingOrder.id}</h3>
                                 <button className="close-btn" onClick={() => setEditingOrder(null)}>&times;</button>
                             </div>
                             <div className="modal-body">
-                                <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Nuevo Estado:</label>
-                                <select
-                                    defaultValue={editingOrder.estado}
-                                    onChange={(e) => handleStatusUpdate(editingOrder.id, e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                >
-                                    <option value="pendiente">Pendiente</option>
-                                    <option value="cancelado">Cancelado</option>
-                                </select>
-                                <button
-                                    onClick={() => setEditingOrder(null)}
-                                    style={{ marginTop: '20px', width: '100%', padding: '10px', background: '#eee', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                                >
-                                    Cerrar
-                                </button>
+                                <div className="row mb-3" style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+                                    <div style={{ flex: '1 1 200px' }}>
+                                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Estado del Pedido:</label>
+                                        <select
+                                            value={editedOrderStatus}
+                                            onChange={(e) => setEditedOrderStatus(e.target.value)}
+                                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                        >
+                                            <option value="pendiente">Pendiente</option>
+                                            <option value="procesando">Procesando</option>
+                                            <option value="entregado">Entregado</option>
+                                            <option value="pagado">Pagado</option>
+                                            <option value="cancelado">Cancelado</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ flex: '1 1 250px' }}>
+                                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Notas / Observaciones:</label>
+                                        <textarea
+                                            value={editedOrderNotes}
+                                            onChange={(e) => setEditedOrderNotes(e.target.value)}
+                                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', minHeight: '38px', resize: 'vertical' }}
+                                            rows="1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <hr />
+                                <h5 style={{ fontWeight: 'bold', marginBottom: '15px' }}>Productos del Pedido</h5>
+                                
+                                <div className="add-product-section" style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center', background: '#f8f9fa', padding: '10px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                                    <select 
+                                        value={newProductSelected} 
+                                        onChange={(e) => setNewProductSelected(e.target.value)}
+                                        style={{ flex: 1, minWidth: '150px', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    >
+                                        <option value="">-- Añadir Producto --</option>
+                                        {products.map(p => (
+                                            <option key={p.id} value={p.id}>{p.nombre} - ${parseFloat(p.precio).toLocaleString()}</option>
+                                        ))}
+                                    </select>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        value={newProductQuantity} 
+                                        onChange={(e) => setNewProductQuantity(e.target.value)}
+                                        style={{ width: '70px', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    />
+                                    <button 
+                                        onClick={handleAddProductToOrder}
+                                        style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer' }}
+                                    >
+                                        Añadir
+                                    </button>
+                                </div>
+
+                                <div className="table-responsive" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                                    <table className="table table-sm align-middle">
+                                        <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th style={{ width: '90px', textAlign: 'center' }}>Cant.</th>
+                                                <th>Subtotal</th>
+                                                <th style={{ width: '50px' }}></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {editedOrderDetails.map((item, i) => (
+                                                <tr key={i}>
+                                                    <td>{item.producto_nombre}</td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <input 
+                                                            type="number" 
+                                                            min="1" 
+                                                            value={item.cantidad} 
+                                                            onChange={(e) => handleUpdateDetailQuantity(i, parseInt(e.target.value) || 1)}
+                                                            style={{ width: '60px', padding: '4px', textAlign: 'center', borderRadius: '4px', border: '1px solid #ccc' }}
+                                                        />
+                                                    </td>
+                                                    <td>
+                                                        ${parseFloat(item.subtotal || (item.precio_unitario * item.cantidad) || 0).toLocaleString()}
+                                                    </td>
+                                                    <td>
+                                                        <button 
+                                                            onClick={() => handleRemoveDetail(i)} 
+                                                            style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer' }}
+                                                            title="Eliminar producto"
+                                                        >
+                                                            <TrashIcon />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {editedOrderDetails.length === 0 && (
+                                                <tr>
+                                                    <td colSpan="4" className="text-center text-muted" style={{ padding: '15px' }}>
+                                                        No hay productos en este pedido.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '15px' }}>
+                                    <h5 style={{ fontWeight: 'bold', margin: 0, color: '#e63946' }}>
+                                        Total Calculado: ${editedOrderDetails.reduce((sum, item) => sum + parseFloat(item.subtotal || (item.precio_unitario * item.cantidad) || 0), 0).toLocaleString()}
+                                    </h5>
+                                    <div>
+                                        <button
+                                            onClick={() => setEditingOrder(null)}
+                                            style={{ marginRight: '10px', padding: '10px 20px', background: '#eee', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleSaveOrderChanges}
+                                            style={{ padding: '10px 20px', background: '#198754', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                                        >
+                                            Guardar Cambios
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

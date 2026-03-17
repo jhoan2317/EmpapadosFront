@@ -347,7 +347,7 @@ export default function Home() {
         "Sin Tomate", "Sin Cebolla", "Sin Ripido", "Sin Queso", "Sin Jamon",
         "Sin Encebollado", "Sin Salsa de Ajo", "Sin Baño de Queso Fundido",
         "Sin Maiz Tierno", "Sin Piña Calada", "Sin Extra Queso", "Sin Salsa Rosada",
-        "Sin Salsa de Piña", "Sin Salsa de Tomate"
+        "Sin Salsa de Piña", "Sin Salsa de Tomate", "Solo Ajo"
     ];
 
     const additionOptions = [

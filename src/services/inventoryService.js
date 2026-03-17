@@ -37,3 +37,13 @@ export const getMovements = async (page = 1) => {
     const response = await api.get(`inventario/movimientos/?page=${page}`);
     return response.data;
 };
+
+export const getInventorySummary = async () => {
+    const response = await api.get('inventario/inventario/resumen_movimientos/');
+    return response.data;
+};
+
+export const registerTasting = async (data) => {
+    const response = await api.post('inventario/inventario/registrar_degustacion/', data);
+    return response.data;
+};

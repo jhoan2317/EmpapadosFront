@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { getInventory, updateInventory, createInventoryEntry, registerInventoryExit, getInventoryItem, getMovements, deleteInventoryEntry } from "../services/inventoryService";
-import { getCategories } from "../services/productService";
+import { getInventory, updateInventory, createInventoryEntry, registerInventoryExit, getInventoryItem, getInventorySummary, getMovements, deleteInventoryEntry, registerTasting } from "../services/inventoryService";
+import { getCategories, getProducts } from "../services/productService";
 import { useLoading } from "../context/LoadingContext";
 import { LOADING_CONFIG } from "../components/GlobalSpinner";
 import Header from "../components/Header";
@@ -46,11 +46,21 @@ export default function AdminInventario() {
         motivo: ""
     });
 
-    // Estado para Historial de Movimientos
-    const [movements, setMovements] = useState([]);
-    const [movPage, setMovPage] = useState(1);
-    const [movTotal, setMovTotal] = useState(0);
+    // Estado para Resumen de Movimientos (Cards)
+    const [summaryData, setSummaryData] = useState([]);
     const [confirmDelete, setConfirmDelete] = useState({ isOpen: false, id: null });
+
+    // Estado para Degustaciones
+    const [tastingModalOpen, setTastingModalOpen] = useState(false);
+    const [tastingData, setTastingData] = useState({
+        producto_id: "",
+        cantidad: 1,
+        descripcion: ""
+    });
+    const [productsList, setProductsList] = useState([]);
+    const [tastingHistory, setTastingHistory] = useState([]);
+    const [tastPage, setTastPage] = useState(1);
+    const [tastTotal, setTastTotal] = useState(0);
 
     const UNIDADES = [
         { value: 'unidades', label: 'Unidades' },
@@ -62,19 +72,22 @@ export default function AdminInventario() {
 
     useEffect(() => {
         loadData(currentPage);
-        loadMovements(movPage);
-    }, [currentPage, movPage]);
+        loadSummary();
+        loadTastingHistory(tastPage);
+    }, [currentPage, tastPage]);
 
     const loadData = async (page = 1) => {
         try {
             showLoading(LOADING_CONFIG.TEXTS.LOADING);
-            const [data, catsData] = await Promise.all([
+            const [data, catsData, prodsData] = await Promise.all([
                 getInventory(page),
-                getCategories()
+                getCategories(),
+                getProducts()
             ]);
             setInventory(Array.isArray(data) ? data : (data.results || []));
             setTotalCount(data.count || (Array.isArray(data) ? data.length : 0));
             setCategories(Array.isArray(catsData) ? catsData : (catsData.results || []));
+            setProductsList(Array.isArray(prodsData) ? prodsData : (prodsData.results || []));
         } catch (error) {
             console.error("Error cargando inventario:", error);
         } finally {
@@ -83,13 +96,57 @@ export default function AdminInventario() {
         }
     };
 
-    const loadMovements = async (page = 1) => {
+    const loadSummary = async () => {
+        try {
+            const data = await getInventorySummary();
+            setSummaryData(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Error cargando resumen de inventario:", error);
+        }
+    };
+
+    const loadTastingHistory = async (page = 1) => {
         try {
             const data = await getMovements(page);
-            setMovements(Array.isArray(data) ? data : (data.results || []));
-            setMovTotal(data.count || 0);
+            const allMovements = Array.isArray(data) ? data : (data.results || []);
+            // Filtramos solo los movimientos que contengan "DEGUSTACIÓN" en el motivo
+            const degustaciones = allMovements.filter(mov => mov.motivo && mov.motivo.includes("DEGUSTACIÓN"));
+            
+            // Agrupar por motivo, usuario y fecha aproximada para que no salga un movimiento por ingrediente
+            const grouped = {};
+            degustaciones.forEach(mov => {
+                const fechaAprox = new Date(mov.fecha).toISOString().slice(0, 16); // Hasta los minutos
+                const key = `${mov.motivo}_${mov.usuario}_${fechaAprox}`;
+                
+                if (!grouped[key]) {
+                    // Extraer información usando regex "DEGUSTACIÓN (Cantidadx Nombre): Descripcion"
+                    // Si no hace match, al menos guardamos el motivo completo
+                    const match = mov.motivo.match(/^DEGUSTACI(?:Ó|O)N \((.*)\):\s*(.*)$/i);
+                    let producto = "Producto";
+                    let persona = mov.motivo;
+                    
+                    if (match) {
+                        producto = match[1];
+                        persona = match[2];
+                    }
+
+                    grouped[key] = {
+                        id: mov.id,
+                        fecha: mov.fecha,
+                        producto: producto,
+                        persona: persona,
+                        usuario: mov.usuario
+                    };
+                }
+            });
+
+            // Convertir a array y ordenar por fecha más reciente
+            const groupedArray = Object.values(grouped).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            setTastingHistory(groupedArray);
+            setTastTotal(groupedArray.length);
         } catch (error) {
-            console.error("Error cargando movimientos:", error);
+            console.error("Error cargando historial de degustaciones:", error);
         }
     };
 
@@ -178,10 +235,29 @@ export default function AdminInventario() {
             setModalConfig({ isOpen: true, title: "Salida Registrada", message: "La salida de inventario se procesó con éxito.", type: "success" });
             setExitModalOpen(false);
             await loadData(currentPage);
-            await loadMovements(1);
+            await loadSummary();
         } catch (error) {
             console.error("Error al registrar salida:", error);
             setModalConfig({ isOpen: true, title: "Error", message: error.response?.data?.error || "No se pudo registrar la salida.", type: "error" });
+        } finally {
+            hideLoading();
+        }
+    };
+
+    const handleTastingSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            showLoading(LOADING_CONFIG.TEXTS.SAVING);
+            await registerTasting(tastingData);
+            setModalConfig({ isOpen: true, title: "Degustación Registrada", message: "Se han descontado los ingredientes correspondientes a la receta.", type: "success" });
+            setTastingModalOpen(false);
+            setTastingData({ producto_id: "", cantidad: 1, descripcion: "" });
+            await loadData(currentPage);
+            await loadSummary();
+            await loadTastingHistory(1);
+        } catch (error) {
+            console.error("Error al registrar degustación:", error);
+            setModalConfig({ isOpen: true, title: "Error", message: error.response?.data?.error || "Error registrando degustación. Asegúrate de que el producto tiene receta.", type: "error" });
         } finally {
             hideLoading();
         }
@@ -209,15 +285,24 @@ export default function AdminInventario() {
 
             <main className="app-main">
                 <div className="admin-container">
-                    <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
                         <h2>Gestión de Inventario de Ingredientes</h2>
-                        <button
-                            className="btn"
-                            style={{ background: '#ffb703', color: 'white', fontWeight: 'bold', padding: '10px 20px', borderRadius: '8px', border: 'none' }}
-                            onClick={() => setShowModal(true)}
-                        >
-                            Agregar
-                        </button>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                className="btn"
+                                style={{ background: '#17a2b8', color: 'white', fontWeight: 'bold', padding: '10px 20px', borderRadius: '8px', border: 'none' }}
+                                onClick={() => setTastingModalOpen(true)}
+                            >
+                                <i className="bi bi-gift-fill me-2"></i> Registrar Degustación
+                            </button>
+                            <button
+                                className="btn"
+                                style={{ background: '#ffb703', color: 'white', fontWeight: 'bold', padding: '10px 20px', borderRadius: '8px', border: 'none' }}
+                                onClick={() => setShowModal(true)}
+                            >
+                                <i className="bi bi-plus-lg me-2"></i> Agregar
+                            </button>
+                        </div>
                     </header>
 
 
@@ -275,48 +360,69 @@ export default function AdminInventario() {
                         />
                     </section>
 
-                    <section className="table-section mt-5" style={{ marginTop: '50px' }}>
-                        <h3>Historial de Salidas / Movimientos</h3>
-                        <table className="table table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Ingrediente</th>
-                                    <th>Cantidad</th>
-                                    <th>Tipo</th>
-                                    <th>Motivo</th>
-                                    <th>Usuario</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {movements.length > 0 ? movements.map(mov => (
-                                    <tr key={mov.id}>
-                                        <td>{new Date(mov.fecha).toLocaleString()}</td>
-                                        <td><strong>{mov.nombre_ingrediente}</strong></td>
-                                        <td style={{ color: mov.tipo_movimiento === 'SALIDA' ? '#e63946' : '#28a745', fontWeight: 'bold' }}>
-                                            {mov.tipo_movimiento === 'SALIDA' ? '-' : '+'}{parseFloat(mov.cantidad).toFixed(2)}
-                                        </td>
-                                        <td>
-                                            <span className={`status-badge ${mov.tipo_movimiento.toLowerCase()}`}>
-                                                {mov.tipo_movimiento}
-                                            </span>
-                                        </td>
-                                        <td>{mov.motivo}</td>
-                                        <td><small>{mov.usuario}</small></td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#999' }}>No hay movimientos registrados.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                        <Pagination
-                            count={movTotal}
-                            currentPage={movPage}
-                            pageSize={PAGE_SIZE}
-                            onPageChange={(page) => setMovPage(page)}
-                        />
+                    <section className="mt-5" style={{ marginTop: '50px' }}>
+                        <h3>Balance por Ingrediente</h3>
+                        <div className="row g-4 mt-3">
+                            {summaryData.length > 0 ? summaryData.map(item => (
+                                <div className="col-md-4 col-sm-6" key={item.id}>
+                                    <div className="card shadow-sm h-100 border-0" style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                                        <div className="card-header border-bottom-0 pt-4 pb-2 text-center" style={{ backgroundColor: '#fff' }}>
+                                            <h5 style={{ fontWeight: 'bold', margin: 0, color: '#333' }}>{item.nombre}</h5>
+                                        </div>
+                                        <div className="card-body text-center">
+                                            <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '10px', marginBottom: '15px' }}>
+                                                <div style={{ fontSize: '13px', color: '#6c757d', textTransform: 'uppercase', fontWeight: 'bold' }}>Total Inicial / Ingresos</div>
+                                                <div style={{ fontSize: '24px', fontWeight: '800', color: '#28a745' }}>{parseFloat(item.total_ingreso).toLocaleString()} <span style={{fontSize: '14px', fontWeight: 'normal', color: '#666'}}>{item.unidad}</span></div>
+                                            </div>
+                                            <div style={{ padding: '15px', backgroundColor: '#fff5f5', borderRadius: '10px' }}>
+                                                <div style={{ fontSize: '13px', color: '#6c757d', textTransform: 'uppercase', fontWeight: 'bold' }}>Se Gastaron</div>
+                                                <div style={{ fontSize: '24px', fontWeight: '800', color: '#dc3545' }}>{parseFloat(item.total_salida).toLocaleString()} <span style={{fontSize: '14px', fontWeight: 'normal', color: '#666'}}>{item.unidad}</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="col-12 text-center" style={{ padding: '40px', color: '#999' }}>Ningún ingrediente para mostrar en el balance.</div>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="mt-5" style={{ marginTop: '50px' }}>
+                        <h3>Historial de Degustaciones</h3>
+                        <div className="row g-4 mt-3">
+                            {tastingHistory.length > 0 ? tastingHistory.map(mov => (
+                                <div className="col-md-4 col-sm-6" key={mov.id}>
+                                    <div className="card shadow-sm h-100 border-0" style={{ borderRadius: '12px', overflow: 'hidden' }}>
+                                        <div className="card-header border-bottom-0 pt-4 pb-2" style={{ backgroundColor: '#fff' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                <h5 style={{ fontWeight: 'bold', margin: 0, color: '#17a2b8' }}>
+                                                    <i className="bi bi-person-fill me-2"></i>
+                                                    {mov.persona}
+                                                </h5>
+                                            </div>
+                                            <p className="text-muted mb-0 mt-3" style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                <i className="bi bi-box-seam me-1"></i>
+                                                Producto: <span style={{ color: '#333' }}>{mov.producto}</span>
+                                            </p>
+                                        </div>
+                                        <div className="card-body py-2">
+                                            <p className="text-muted mb-0" style={{ fontSize: '13px' }}>
+                                                <i className="bi bi-calendar-event me-1"></i>
+                                                Fecha: <span style={{ color: '#555' }}>{new Date(mov.fecha).toLocaleString()}</span>
+                                            </p>
+                                        </div>
+                                        <div className="card-footer bg-white border-top-0 pb-3 pt-2" style={{ fontSize: '13px', color: '#888' }}>
+                                            Autorizado por: <strong>{mov.usuario}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="col-12 text-center" style={{ padding: '40px', color: '#999', backgroundColor: '#f8f9fa', borderRadius: '12px' }}>
+                                    <i className="bi bi-info-circle display-4 d-block mb-3 text-muted"></i>
+                                    Ninguna degustación registrada recientemente.
+                                </div>
+                            )}
+                        </div>
                     </section>
                 </div>
                 <ModernModal
@@ -443,6 +549,66 @@ export default function AdminInventario() {
                 )
                 }
             </main >
+
+            {/* Modal de Salida por Degustación */}
+            {
+                tastingModalOpen && (
+                    <div className="modal-overlay" onClick={() => setTastingModalOpen(false)}>
+                        <div className="modal-content" style={{ maxWidth: '450px', padding: '30px' }} onClick={e => e.stopPropagation()}>
+                            <h3 style={{ marginBottom: '20px', color: '#17a2b8' }}>
+                                <i className="bi bi-gift-fill me-2"></i> Registro de Degustación
+                            </h3>
+                            <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>
+                                Esto descontará los ingredientes del inventario base a la receta del producto, sin afectar las ventas.
+                            </p>
+                            <form onSubmit={handleTastingSubmit}>
+                                <div className="form-group mb-3">
+                                    <label style={{ fontWeight: 'bold' }}>Producto Consumido</label>
+                                    <select
+                                        className="form-select"
+                                        value={tastingData.producto_id}
+                                        onChange={e => setTastingData({ ...tastingData, producto_id: e.target.value })}
+                                        required
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    >
+                                        <option value="">Seleccione el producto...</option>
+                                        {productsList.map(p => (
+                                            <option key={p.id} value={p.id}>{p.nombre}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group mb-3">
+                                    <label style={{ fontWeight: 'bold' }}>Cantidad de Productos</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={tastingData.cantidad}
+                                        onChange={e => setTastingData({ ...tastingData, cantidad: parseInt(e.target.value) || 1 })}
+                                        required
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    />
+                                </div>
+                                <div className="form-group mb-4">
+                                    <label style={{ fontWeight: 'bold' }}>Empleado / Descripción</label>
+                                    <input
+                                        type="text"
+                                        value={tastingData.descripcion}
+                                        onChange={e => setTastingData({ ...tastingData, descripcion: e.target.value })}
+                                        placeholder="Ej: Degustación para Juan"
+                                        required
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                                    />
+                                </div>
+                                <div className="modal-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                    <button type="button" onClick={() => setTastingModalOpen(false)} style={{ background: '#f8f9fa', border: '1px solid #ddd', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
+                                    <button type="submit" style={{ background: '#17a2b8', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Guardar Degustación</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* Modal de Salida */}
             {
