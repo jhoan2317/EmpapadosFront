@@ -4,6 +4,7 @@ import { getCategories, getProducts } from "../services/productService";
 import { createOrder } from "../services/orderService";
 import { getOptimizedImage } from "../services/cloudinaryService";
 import { getHeroSections, getFeatures, getTestimonials, getGlobalConfig, createTestimonial } from "../services/marketingService";
+import { getInventory } from "../services/inventoryService";
 import { printThermalTicket } from "../services/printService";
 import logo from "../assets/logo.png";
 import "../styles/home.css";
@@ -124,6 +125,13 @@ export default function Home() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [modalQty, setModalQty] = useState(1);
     const [personalization, setPersonalization] = useState({});
+    
+    // Novedad: Lógica de cambios de ingredientes
+    const [availableIngredients, setAvailableIngredients] = useState([]);
+    const [swapOriginalText, setSwapOriginalText] = useState("");
+    const [swapReplacementText, setSwapReplacementText] = useState("");
+    const [swapError, setSwapError] = useState("");
+
     const [editingCartItemId, setEditingCartItemId] = useState(null);
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
     const [animatingCart, setAnimatingCart] = useState(false);
@@ -151,16 +159,18 @@ export default function Home() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [catsData, prodsData, heroes, features, testimonials, config] = await Promise.all([
+                const [catsData, prodsData, heroes, features, testimonials, config, invData] = await Promise.all([
                     getCategories(),
                     getProducts(),
                     getHeroSections(),
                     getFeatures(),
                     getTestimonials(),
-                    getGlobalConfig()
+                    getGlobalConfig(),
+                    getInventory(null)
                 ]);
                 setCategories(Array.isArray(catsData) ? catsData : (catsData.results || []));
                 setProducts(Array.isArray(prodsData) ? prodsData : (prodsData.results || []));
+                setAvailableIngredients(Array.isArray(invData) ? invData : (invData.results || []));
                 setMarketingData({
                     heroes: Array.isArray(heroes) ? heroes : heroes.results || [],
                     features: Array.isArray(features) ? features : features.results || [],
@@ -236,10 +246,16 @@ export default function Home() {
             const initialPerso = {};
             cartItem.personalization.forEach(opt => initialPerso[opt] = true);
             setPersonalization(initialPerso);
+            setSwapOriginalText(cartItem.swapOriginalText || "");
+            setSwapReplacementText(cartItem.swapReplacementText || "");
+            setSwapError("");
             setEditingCartItemId(cartItem.id);
         } else {
             setModalQty(1);
             setPersonalization({});
+            setSwapOriginalText("");
+            setSwapReplacementText("");
+            setSwapError("");
             setEditingCartItemId(null);
         }
         setIsModalOpen(true);
@@ -254,10 +270,37 @@ export default function Home() {
     };
 
     const addToCart = () => {
+        const currentSwaps = {};
+        
+        // Validación de ingredientes
+        if (swapOriginalText || swapReplacementText) {
+            if (!swapOriginalText || !swapReplacementText) {
+                setSwapError("Debes llenar ambos campos para cambiar un ingrediente.");
+                return;
+            }
+            
+            const origIng = availableIngredients.find(i => i.nombre_ingrediente.toLowerCase() === swapOriginalText.trim().toLowerCase());
+            const replIng = availableIngredients.find(i => i.nombre_ingrediente.toLowerCase() === swapReplacementText.trim().toLowerCase());
+            
+            if (!origIng || !replIng) {
+                setSwapError("Ese ingrediente no existe.");
+                return;
+            }
+            
+            currentSwaps[origIng.id] = replIng.id;
+        }
+
         if (editingCartItemId) {
             setCart(prev => prev.map(item =>
                 item.id === editingCartItemId
-                    ? { ...item, quantity: modalQty, personalization: Object.keys(personalization).filter(k => personalization[k]) }
+                    ? { 
+                        ...item, 
+                        quantity: modalQty, 
+                        personalization: Object.keys(personalization).filter(k => personalization[k]),
+                        swaps: currentSwaps,
+                        swapOriginalText,
+                        swapReplacementText
+                      }
                     : item
             ));
         } else {
@@ -265,7 +308,10 @@ export default function Home() {
                 id: Date.now(),
                 product: selectedProduct,
                 quantity: modalQty,
-                personalization: Object.keys(personalization).filter(k => personalization[k])
+                personalization: Object.keys(personalization).filter(k => personalization[k]),
+                swaps: currentSwaps,
+                swapOriginalText,
+                swapReplacementText
             };
             setCart([...cart, newItem]);
 
@@ -299,15 +345,45 @@ export default function Home() {
                 telefono: customerInfo.telefono || "N/A",
                 direccion: orderType === 'domicilio' ? customerInfo.direccion : "Consumo en Local",
                 numero_mesa: orderType === 'local' ? parseInt(customerInfo.mesa) : null,
-                metodo_pago: orderType === 'domicilio' ? customerInfo.formaPago : 'efectivo',
-                observaciones: cart.map(item =>
-                    `${item.product.nombre} (x${item.quantity}): ${item.personalization.join(", ") || "Sin personalización"}`
-                ).join(" | "),
-                detalles: cart.map(item => ({
-                    producto: item.product.id,
-                    cantidad: item.quantity,
-                    precio_unitario: calculateItemTotalPrice(item.product, item.personalization)
-                }))
+                metodo_pago: customerInfo.formaPago,
+                swaps_data: cart.map(item => item.swaps || {}),
+                observaciones: cart.map(item => {
+                    let baseText = `${item.product.nombre} (x${item.quantity}): ${item.personalization.join(", ") || "Sin personalización"}`;
+                    if (item.swaps && Object.keys(item.swaps).length > 0) {
+                        const swapTexts = Object.entries(item.swaps).map(([oldId, newId]) => {
+                            if (!newId) return null;
+                            const oldIng = item.product.receta.find(r => r.ingrediente === parseInt(oldId))?.ingrediente_nombre || oldId;
+                            const newIng = availableIngredients.find(i => i.id === parseInt(newId))?.nombre_ingrediente || newId;
+                            return `Cambiar ${oldIng} por ${newIng}`;
+                        }).filter(Boolean);
+                        
+                        if (swapTexts.length > 0) {
+                            baseText += ` | Cambios: ${swapTexts.join(', ')}`;
+                        }
+                    }
+                    return baseText;
+                }).join(" || "),
+                detalles: cart.map(item => {
+                    // Mapear adiciones de texto a IDs de ingredientes
+                    const additionsData = item.personalization
+                        .map(persoName => {
+                            const found = availableIngredients.find(ing => 
+                                // Buscamos coincidencia flexible (ej: "Adicion de Tocineta" -> "Tocineta")
+                                persoName.toLowerCase().includes(ing.nombre_ingrediente.toLowerCase()) ||
+                                ing.nombre_ingrediente.toLowerCase().includes(persoName.toLowerCase())
+                            );
+                            return found ? found.id : null;
+                        })
+                        .filter(id => id !== null);
+
+                    return {
+                        producto: item.product.id,
+                        cantidad: item.quantity,
+                        precio_unitario: calculateItemTotalPrice(item.product, item.personalization),
+                        swaps: item.swaps || {},
+                        additions_data: additionsData
+                    };
+                })
             };
 
             const response = await createOrder(orderData);
@@ -670,6 +746,17 @@ export default function Home() {
                                         onChange={(e) => setCustomerInfo({ ...customerInfo, mesa: e.target.value })}
                                         style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #eee', fontSize: '14px' }}
                                     />
+                                    <select
+                                        className="form-select"
+                                        aria-label="Forma de Pago"
+                                        value={customerInfo.formaPago || ''}
+                                        onChange={(e) => setCustomerInfo({ ...customerInfo, formaPago: e.target.value })}
+                                        style={{ fontSize: '14px' }}
+                                    >
+                                        <option value="">Selecciona Forma de Pago</option>
+                                        <option value="nequi">Nequi</option>
+                                        <option value="efectivo">Efectivo</option>
+                                    </select>
                                 </div>
                             )}
 
@@ -749,12 +836,12 @@ export default function Home() {
                                         <button
                                             className="continue-btn"
                                             style={{
-                                                background: (orderType === 'local' && customerInfo.nombre && customerInfo.mesa) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago) ? '#ffb703' : '#f0f0f0',
-                                                color: (orderType === 'local' && customerInfo.nombre && customerInfo.mesa) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago) ? '#000' : '#aaa',
-                                                cursor: (orderType === 'local' && customerInfo.nombre && customerInfo.mesa) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago) ? 'pointer' : 'not-allowed',
+                                                background: (orderType === 'local' && customerInfo.nombre && customerInfo.mesa && customerInfo.formaPago) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago) ? '#ffb703' : '#f0f0f0',
+                                                color: (orderType === 'local' && customerInfo.nombre && customerInfo.mesa && customerInfo.formaPago) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago) ? '#000' : '#aaa',
+                                                cursor: (orderType === 'local' && customerInfo.nombre && customerInfo.mesa && customerInfo.formaPago) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago) ? 'pointer' : 'not-allowed',
                                                 width: '100%', padding: '15px', borderRadius: '12px', border: 'none', fontWeight: '700', fontSize: '16px'
                                             }}
-                                            disabled={!((orderType === 'local' && customerInfo.nombre && customerInfo.mesa) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago))}
+                                            disabled={!((orderType === 'local' && customerInfo.nombre && customerInfo.mesa && customerInfo.formaPago) || (orderType === 'domicilio' && customerInfo.nombre && customerInfo.direccion && customerInfo.telefono && customerInfo.formaPago))}
                                             onClick={handleProcessOrder}
                                         >
                                             Finalizar Pedido
@@ -833,6 +920,44 @@ export default function Home() {
                                 <div className="modal-details-scroll">
                                     <h2 className="modal-title">{selectedProduct.nombre}</h2>
                                     <p className="modal-desc">{selectedProduct.descripcion}</p>
+
+                                    {/* SECCIÓN ESTRELLA: CAMBIO DE INGREDIENTES */}
+                                    {selectedProduct?.receta?.length > 0 && (
+                                        <div style={{ marginBottom: '30px', padding: '15px', backgroundColor: '#fff9e6', borderRadius: '12px', border: '1px solid #ffeeba' }}>
+                                            <p className="selection-note" style={{ fontStyle: 'italic', marginBottom: '15px', color: '#856404' }}>Ejemplo: cambiar chorizo por tocineta</p>
+                                            
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    placeholder="Ingrediente a quitar"
+                                                    style={{ fontSize: '13px', padding: '8px' }}
+                                                    value={swapOriginalText}
+                                                    onChange={(e) => {
+                                                        setSwapOriginalText(e.target.value);
+                                                        if (swapError) setSwapError("");
+                                                    }}
+                                                />
+                                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#555' }}>por</span>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    placeholder="Nuevo ingrediente"
+                                                    style={{ fontSize: '13px', padding: '8px' }}
+                                                    value={swapReplacementText}
+                                                    onChange={(e) => {
+                                                        setSwapReplacementText(e.target.value);
+                                                        if (swapError) setSwapError("");
+                                                    }}
+                                                />
+                                            </div>
+                                            {swapError && (
+                                                <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '8px', fontWeight: 'bold' }}>
+                                                    {swapError}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="customization-header">
                                         <h4>¿Deseas personalizar tu orden?</h4>

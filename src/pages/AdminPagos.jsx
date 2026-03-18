@@ -74,6 +74,8 @@ export default function AdminPagos() {
     // Normalizador seguro del reporte
     const normalizeReporte = (data) => ({
         ingresos: Number(data?.ingresos || 0),
+        ingresos_efectivo: Number(data?.ingresos_efectivo || 0),
+        ingresos_nequi: Number(data?.ingresos_nequi || 0),
         gastos: Number(data?.gastos || 0),
         ganancia: Number(data?.ganancia || 0),
     });
@@ -275,10 +277,20 @@ export default function AdminPagos() {
                             marginBottom: "20px"
                         }}>
                             <div className="card p-3">
-                                <h5>Ingresos</h5>
-                                <h3 style={{ color: "#28a745" }}>
+                                <h5 style={{ marginBottom: '15px' }}>Ingresos Totales</h5>
+                                <h3 style={{ color: "#28a745", marginBottom: '15px' }}>
                                     ${Number(reporte.ingresos).toLocaleString()}
                                 </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '14px', color: '#555' }}><i className="bi bi-cash-stack me-2" style={{ color: '#28a745' }}></i>Efectivo:</span>
+                                        <span style={{ fontWeight: 'bold' }}>${Number(reporte.ingresos_efectivo).toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '14px', color: '#555' }}><i className="bi bi-phone me-2" style={{ color: '#6f42c1' }}></i>Nequi:</span>
+                                        <span style={{ fontWeight: 'bold' }}>${Number(reporte.ingresos_nequi).toLocaleString()}</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="card p-3">
