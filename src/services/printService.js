@@ -17,17 +17,87 @@ export const printThermalTicket = (orderData, config) => {
     const doc = iframe.contentWindow.document;
 
     // 2. Construir el HTML del ticket
-    const itemsHtml = orderData.items.map(item => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span style="flex: 1;">${item.cantidad}x ${item.producto_nombre}</span>
-            <span>$${(item.precio_total).toLocaleString()}</span>
-        </div>
-        ${item.adiciones && item.adiciones.length > 0 ?
-            `<div style="font-size: 10px; margin-left: 10px; margin-bottom: 4px;">
-                + ${item.adiciones.map(a => a.nombre).join(', ')}
-            </div>` : ''
+    const obsLines = orderData.observaciones ? orderData.observaciones.split(' || ') : [];
+
+    const itemsHtml = orderData.items.map((item, index) => {
+        // Inicializar categorías
+        let itemSins = [];
+        let itemAdiciones = [];
+        let itemBebidas = [];
+        let itemCambios = "";
+
+        // 1. Prioridad: Datos estructurados (si existen)
+        if (item.adiciones && item.adiciones.length > 0) {
+            itemSins = item.adiciones.filter(a => a.nombre.startsWith('Sin') || a.nombre.toLowerCase().startsWith('solo')).map(a => a.nombre);
+            itemAdiciones = item.adiciones.filter(a => a.nombre.startsWith('Adicion')).map(a => a.nombre);
+            itemBebidas = item.adiciones.filter(a => 
+                !a.nombre.startsWith('Sin') && 
+                !a.nombre.toLowerCase().startsWith('solo') && 
+                !a.nombre.startsWith('Adicion')
+            ).map(a => a.nombre);
         }
-    `).join('');
+
+        if (item.swapOriginalText || item.swapOriginal) {
+            itemCambios = `Cambiar ${item.swapOriginalText || item.swapOriginal} por ${item.swapReplacementText || item.swapReplacement}`;
+        }
+
+        // 2. Fallback/Enriquecimiento: Parsear desde observaciones (especialmente para AdminPedidos)
+        const line = obsLines[index] || "";
+        if (line) {
+            const parts = line.split(': ');
+            if (parts.length > 1) {
+                const detailsFull = parts.slice(1).join(': ');
+                const [persoPart, cambiosPart] = detailsFull.split(' | ');
+                
+                if (itemAdiciones.length === 0 && itemSins.length === 0 && itemBebidas.length === 0 && persoPart && persoPart !== "Sin personalización") {
+                    const persoList = persoPart.split(', ');
+                    itemSins = persoList.filter(p => p.startsWith('Sin') || p.toLowerCase().startsWith('solo'));
+                    itemAdiciones = persoList.filter(p => p.startsWith('Adicion'));
+                    itemBebidas = persoList.filter(p => !p.startsWith('Sin') && !p.toLowerCase().startsWith('solo') && !p.startsWith('Adicion'));
+                }
+                
+                if (!itemCambios && cambiosPart && cambiosPart.includes('Cambios: ')) {
+                    itemCambios = cambiosPart.replace('Cambios: ', '');
+                }
+            }
+        }
+
+        return `
+            <div style="margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                    <span>${item.cantidad}x ${item.producto_nombre}</span>
+                    <span>$${(item.precio_total).toLocaleString()}</span>
+                </div>
+                
+                ${itemSins.length > 0 ? `
+                    <div style="font-size: 11px; font-style: italic; color: #555; margin-left: 5px;">
+                        ${itemSins.map(s => s.toLowerCase()).join(', ')}.
+                    </div>
+                ` : ''}
+
+                ${itemAdiciones.length > 0 ? `
+                    <div style="margin-top: 2px; margin-left: 5px;">
+                        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Adiciones:</div>
+                        <div style="font-size: 11px;">${itemAdiciones.join(', ')}.</div>
+                    </div>
+                ` : ''}
+
+                ${itemCambios ? `
+                    <div style="margin-top: 2px; margin-left: 5px;">
+                        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Cambios:</div>
+                        <div style="font-size: 11px; color: #007bff;">${itemCambios}</div>
+                    </div>
+                ` : ''}
+
+                ${itemBebidas.length > 0 ? `
+                    <div style="margin-top: 2px; margin-left: 5px;">
+                        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Bebidas:</div>
+                        <div style="font-size: 11px;">${itemBebidas.join(', ')}.</div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
 
     const htmlContent = `
         <html>
@@ -81,11 +151,7 @@ export const printThermalTicket = (orderData, config) => {
                 <span>$${(orderData.total || 0).toLocaleString()}</span>
             </div>
             
-            ${orderData.observaciones ? `
-                <div class="divider"></div>
-                <div class="bold">NOTAS:</div>
-                <div style="font-size: 10px;">${orderData.observaciones}</div>
-            ` : ''}
+
             
             <div class="divider"></div>
             

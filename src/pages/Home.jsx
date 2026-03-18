@@ -125,12 +125,12 @@ export default function Home() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [modalQty, setModalQty] = useState(1);
     const [personalization, setPersonalization] = useState({});
-    
+
     // Novedad: Lógica de cambios de ingredientes
     const [availableIngredients, setAvailableIngredients] = useState([]);
     const [swapOriginalText, setSwapOriginalText] = useState("");
     const [swapReplacementText, setSwapReplacementText] = useState("");
-    const [swapError, setSwapError] = useState("");
+
 
     const [editingCartItemId, setEditingCartItemId] = useState(null);
     const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
@@ -248,14 +248,14 @@ export default function Home() {
             setPersonalization(initialPerso);
             setSwapOriginalText(cartItem.swapOriginalText || "");
             setSwapReplacementText(cartItem.swapReplacementText || "");
-            setSwapError("");
+
             setEditingCartItemId(cartItem.id);
         } else {
             setModalQty(1);
             setPersonalization({});
             setSwapOriginalText("");
             setSwapReplacementText("");
-            setSwapError("");
+
             setEditingCartItemId(null);
         }
         setIsModalOpen(true);
@@ -271,36 +271,30 @@ export default function Home() {
 
     const addToCart = () => {
         const currentSwaps = {};
-        
-        // Validación de ingredientes
+
+        // Lógica de cambios de ingredientes (Flexible: solo texto)
         if (swapOriginalText || swapReplacementText) {
-            if (!swapOriginalText || !swapReplacementText) {
-                setSwapError("Debes llenar ambos campos para cambiar un ingrediente.");
-                return;
+            // Buscamos si el ingrediente existe para guardar el ID (opcional para inventario)
+            // pero NO bloqueamos el proceso si no existe o si faltan datos.
+            const origIng = availableIngredients?.find(i => i.nombre_ingrediente?.toLowerCase() === swapOriginalText.trim().toLowerCase());
+            const replIng = availableIngredients?.find(i => i.nombre_ingrediente?.toLowerCase() === swapReplacementText.trim().toLowerCase());
+            
+            if (origIng && replIng) {
+                currentSwaps[origIng.id] = replIng.id;
             }
-            
-            const origIng = availableIngredients.find(i => i.nombre_ingrediente.toLowerCase() === swapOriginalText.trim().toLowerCase());
-            const replIng = availableIngredients.find(i => i.nombre_ingrediente.toLowerCase() === swapReplacementText.trim().toLowerCase());
-            
-            if (!origIng || !replIng) {
-                setSwapError("Ese ingrediente no existe.");
-                return;
-            }
-            
-            currentSwaps[origIng.id] = replIng.id;
         }
 
         if (editingCartItemId) {
             setCart(prev => prev.map(item =>
                 item.id === editingCartItemId
-                    ? { 
-                        ...item, 
-                        quantity: modalQty, 
+                    ? {
+                        ...item,
+                        quantity: modalQty,
                         personalization: Object.keys(personalization).filter(k => personalization[k]),
                         swaps: currentSwaps,
                         swapOriginalText,
                         swapReplacementText
-                      }
+                    }
                     : item
             ));
         } else {
@@ -349,17 +343,8 @@ export default function Home() {
                 swaps_data: cart.map(item => item.swaps || {}),
                 observaciones: cart.map(item => {
                     let baseText = `${item.product.nombre} (x${item.quantity}): ${item.personalization.join(", ") || "Sin personalización"}`;
-                    if (item.swaps && Object.keys(item.swaps).length > 0) {
-                        const swapTexts = Object.entries(item.swaps).map(([oldId, newId]) => {
-                            if (!newId) return null;
-                            const oldIng = item.product.receta.find(r => r.ingrediente === parseInt(oldId))?.ingrediente_nombre || oldId;
-                            const newIng = availableIngredients.find(i => i.id === parseInt(newId))?.nombre_ingrediente || newId;
-                            return `Cambiar ${oldIng} por ${newIng}`;
-                        }).filter(Boolean);
-                        
-                        if (swapTexts.length > 0) {
-                            baseText += ` | Cambios: ${swapTexts.join(', ')}`;
-                        }
+                    if (item.swapOriginalText || item.swapReplacementText) {
+                        baseText += ` | Cambios: Cambiar ${item.swapOriginalText || '...'} por ${item.swapReplacementText || '...'}`;
                     }
                     return baseText;
                 }).join(" || "),
@@ -367,7 +352,7 @@ export default function Home() {
                     // Mapear adiciones de texto a IDs de ingredientes
                     const additionsData = item.personalization
                         .map(persoName => {
-                            const found = availableIngredients.find(ing => 
+                            const found = availableIngredients.find(ing =>
                                 // Buscamos coincidencia flexible (ej: "Adicion de Tocineta" -> "Tocineta")
                                 persoName.toLowerCase().includes(ing.nombre_ingrediente.toLowerCase()) ||
                                 ing.nombre_ingrediente.toLowerCase().includes(persoName.toLowerCase())
@@ -925,37 +910,30 @@ export default function Home() {
                                     {selectedProduct?.receta?.length > 0 && (
                                         <div style={{ marginBottom: '30px', padding: '15px', backgroundColor: '#fff9e6', borderRadius: '12px', border: '1px solid #ffeeba' }}>
                                             <p className="selection-note" style={{ fontStyle: 'italic', marginBottom: '15px', color: '#856404' }}>Ejemplo: cambiar chorizo por tocineta</p>
-                                            
+
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <input 
-                                                    type="text" 
-                                                    className="form-control" 
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
                                                     placeholder="Ingrediente a quitar"
                                                     style={{ fontSize: '13px', padding: '8px' }}
                                                     value={swapOriginalText}
                                                     onChange={(e) => {
                                                         setSwapOriginalText(e.target.value);
-                                                        if (swapError) setSwapError("");
                                                     }}
                                                 />
                                                 <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#555' }}>por</span>
-                                                <input 
-                                                    type="text" 
-                                                    className="form-control" 
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
                                                     placeholder="Nuevo ingrediente"
                                                     style={{ fontSize: '13px', padding: '8px' }}
                                                     value={swapReplacementText}
                                                     onChange={(e) => {
                                                         setSwapReplacementText(e.target.value);
-                                                        if (swapError) setSwapError("");
                                                     }}
                                                 />
                                             </div>
-                                            {swapError && (
-                                                <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '8px', fontWeight: 'bold' }}>
-                                                    {swapError}
-                                                </div>
-                                            )}
                                         </div>
                                     )}
 
