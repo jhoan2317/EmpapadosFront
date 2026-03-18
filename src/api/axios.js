@@ -61,7 +61,12 @@ api.interceptors.response.use(
             processQueue(refreshError, null);
 
             localStorage.removeItem("username");
-            window.location.href = "/home";
+            
+            // Si ya estamos en /home o /, no redirigir para evitar bucle infinito
+            const currentPath = window.location.pathname;
+            if (currentPath !== "/home" && currentPath !== "/") {
+                window.location.href = "/home";
+            }
 
             return Promise.reject(refreshError);
         }

@@ -159,15 +159,23 @@ export default function Home() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [catsData, prodsData, heroes, features, testimonials, config, invData] = await Promise.all([
+                const [catsData, prodsData, heroes, features, testimonials, config] = await Promise.all([
                     getCategories(),
                     getProducts(),
                     getHeroSections(),
                     getFeatures(),
                     getTestimonials(),
-                    getGlobalConfig(),
-                    getInventory(null)
+                    getGlobalConfig()
                 ]);
+
+                // Intentamos traer el inventario por separado para que si falla (401) no rompa el resto
+                let invData = [];
+                try {
+                    invData = await getInventory(null);
+                } catch (err) {
+                    console.warn("Inventario no disponible (probablemente acceso no autorizado):", err);
+                }
+
                 setCategories(Array.isArray(catsData) ? catsData : (catsData.results || []));
                 setProducts(Array.isArray(prodsData) ? prodsData : (prodsData.results || []));
                 setAvailableIngredients(Array.isArray(invData) ? invData : (invData.results || []));
@@ -178,7 +186,7 @@ export default function Home() {
                     config: Array.isArray(config) ? config[0] : config
                 });
             } catch (error) {
-                console.error("Error cargando productos:", error);
+                console.error("Error cargando datos iniciales:", error);
             } finally {
                 setLoading(false);
             }
