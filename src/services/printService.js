@@ -1,18 +1,21 @@
 /**
  * Servicio de impresión para tickets térmicos
  */
-
 export const printThermalTicket = (orderData, config) => {
-    // 1. Crear un contenedor temporal para el ticket
-    const ticketId = 'thermal-ticket-iframe';
-    let iframe = document.getElementById(ticketId);
+    // 1. Limpiar iframe previo para evitar basura o caché
+    const ticketId = `thermal-ticket-iframe-${Date.now()}`;
+    const oldIframes = document.querySelectorAll('[id^="thermal-ticket-iframe"]');
+    oldIframes.forEach(el => el.remove());
 
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = ticketId;
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-    }
+    const iframe = document.createElement('iframe');
+    iframe.id = ticketId;
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow.document;
 
@@ -20,13 +23,11 @@ export const printThermalTicket = (orderData, config) => {
     const obsLines = orderData.observaciones ? orderData.observaciones.split(' || ') : [];
 
     const itemsHtml = orderData.items.map((item, index) => {
-        // Inicializar categorías
         let itemSins = [];
         let itemAdiciones = [];
         let itemBebidas = [];
         let itemCambios = "";
 
-        // 1. Prioridad: Datos estructurados (si existen)
         if (item.adiciones && item.adiciones.length > 0) {
             itemSins = item.adiciones.filter(a => a.nombre.startsWith('Sin') || a.nombre.toLowerCase().startsWith('solo')).map(a => a.nombre);
             itemAdiciones = item.adiciones.filter(a => a.nombre.startsWith('Adicion')).map(a => a.nombre);
@@ -41,7 +42,6 @@ export const printThermalTicket = (orderData, config) => {
             itemCambios = `Cambiar ${item.swapOriginalText || item.swapOriginal} por ${item.swapReplacementText || item.swapReplacement}`;
         }
 
-        // 2. Fallback/Enriquecimiento: Parsear desde observaciones (especialmente para AdminPedidos)
         const line = obsLines[index] || "";
         if (line) {
             const parts = line.split(': ');
@@ -63,38 +63,17 @@ export const printThermalTicket = (orderData, config) => {
         }
 
         return `
-            <div style="margin-bottom: 8px; border-bottom: 1px dashed #eee; padding-bottom: 4px;">
-                <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                    <span>${item.cantidad}x ${item.producto_nombre}</span>
-                    <span>$${(item.precio_total).toLocaleString()}</span>
+            <div style="margin-bottom: 5px; border-bottom: 1px dashed #000; padding-bottom: 3px;">
+                <div style="font-weight: normal; margin-bottom: 2px;">
+                    ${item.cantidad}x ${item.producto_nombre}
                 </div>
-                
-                ${itemSins.length > 0 ? `
-                    <div style="font-size: 11px; font-style: italic; color: #555; margin-left: 5px;">
-                        ${itemSins.map(s => s.toLowerCase()).join(', ')}.
-                    </div>
-                ` : ''}
-
-                ${itemAdiciones.length > 0 ? `
-                    <div style="margin-top: 2px; margin-left: 5px;">
-                        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Adiciones:</div>
-                        <div style="font-size: 11px;">${itemAdiciones.join(', ')}.</div>
-                    </div>
-                ` : ''}
-
-                ${itemCambios ? `
-                    <div style="margin-top: 2px; margin-left: 5px;">
-                        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Cambios:</div>
-                        <div style="font-size: 11px; color: #007bff;">${itemCambios}</div>
-                    </div>
-                ` : ''}
-
-                ${itemBebidas.length > 0 ? `
-                    <div style="margin-top: 2px; margin-left: 5px;">
-                        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Bebidas:</div>
-                        <div style="font-size: 11px;">${itemBebidas.join(', ')}.</div>
-                    </div>
-                ` : ''}
+                <div style="text-align: right; font-weight: normal; padding-right: 15px;">
+                    $${(item.precio_total).toLocaleString()}
+                </div>
+                ${itemSins.length > 0 ? `<div style="font-size: 10px; font-style: italic;">${itemSins.map(s => s.toLowerCase()).join(', ')}.</div>` : ''}
+                ${itemAdiciones.length > 0 ? `<div style="font-size: 10px;">ADICIONES: ${itemAdiciones.join(', ')}.</div>` : ''}
+                ${itemCambios ? `<div style="font-size: 10px;">CAMBIOS: ${itemCambios}</div>` : ''}
+                ${itemBebidas.length > 0 ? `<div style="font-size: 10px;">BEBIDAS: ${itemBebidas.join(', ')}.</div>` : ''}
             </div>
         `;
     }).join('');
@@ -105,60 +84,51 @@ export const printThermalTicket = (orderData, config) => {
             <style>
                 @page { margin: 0; size: 58mm auto; }
                 body { 
-                    font-family: 'Courier New', Courier, monospace; 
-                    width: 58mm; 
-                    margin: 0; 
-                    padding: 5px; 
+                    font-family: monospace; 
+                    width: 44mm; 
+                    margin: 0 auto; 
+                    padding: 0; 
                     font-size: 12px;
+                    line-height: 1.1;
+                    -webkit-print-color-adjust: exact;
                 }
                 .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                .divider { border-top: 1px dashed #000; margin: 5px 0; }
-                .bold { font-weight: bold; }
-                .header { font-size: 16px; margin-bottom: 5px; }
+                .divider { border-top: 1px dashed #000; margin: 4px 0; }
+                .header { font-size: 12px; text-transform: uppercase; }
             </style>
         </head>
-        <body>
+        <body onload="window.focus(); window.print();">
             <div class="text-center">
-                <div class="header bold">${config?.site_name || 'EMPAPADOS POP'}</div>
+                <div class="header">${config?.site_name || 'EMPAPADOS POP'}</div>
                 <div>${config?.address || ''}</div>
+                <div>Barrio la Sombrilla</div>
                 <div>${config?.contact_phone || ''}</div>
                 <div class="divider"></div>
-                <div class="bold">ORDEN #${orderData.id || orderData.puesto || '---'}</div>
+                <div>ORDEN #${orderData.id || orderData.puesto || '---'}</div>
                 <div>${new Date().toLocaleString()}</div>
             </div>
             
             <div class="divider"></div>
             
-            <div class="bold">CLIENTE:</div>
+            <div>CLIENTE:</div>
             <div>${orderData.cliente_nombre || 'Cliente General'}</div>
             ${orderData.tipo_entrega === 'domicilio'
-            ? `<div>DOMICILIO: ${orderData.direccion}</div>
-                   <div>TEL: ${orderData.telefono || 'N/A'}</div>`
+            ? `<div>DOM: ${orderData.direccion}</div><div>TEL: ${orderData.telefono || 'N/A'}</div>`
             : `<div>MESA: #${orderData.numero_mesa || '---'}</div>`
-        }
+            }
             
             <div class="divider"></div>
-            
-            <div class="items">
-                ${itemsHtml}
-            </div>
-            
+            <div class="items">${itemsHtml}</div>
             <div class="divider"></div>
             
-            <div style="display: flex; justify-content: space-between;" class="bold">
+            <div style="display: flex; justify-content: space-between; padding-right: 15px;">
                 <span>TOTAL:</span>
                 <span>$${(orderData.total || 0).toLocaleString()}</span>
             </div>
             
-
-            
             <div class="divider"></div>
-            
-            <div class="text-center" style="margin-top: 10px;">
-                ¡GRACIAS POR TU COMPRA!
-            </div>
-            <div style="margin-bottom: 20px;"></div>
+            <div class="text-center" style="margin-top: 10px;">¡GRACIAS POR TU COMPRA!</div>
+            <div style="height: 20px;"></div>
         </body>
         </html>
     `;
@@ -166,10 +136,4 @@ export const printThermalTicket = (orderData, config) => {
     doc.open();
     doc.write(htmlContent);
     doc.close();
-
-    // 3. Imprimir
-    setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-    }, 500);
 };
