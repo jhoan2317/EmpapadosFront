@@ -97,7 +97,7 @@ export const printThermalTicket = (orderData, config) => {
                 .header { font-size: 12px; text-transform: uppercase; }
             </style>
         </head>
-        <body onload="window.focus(); window.print();">
+        <body>
             <div class="text-center">
                 <div class="header">${config?.site_name || 'EMPAPADOS POP'}</div>
                 <div>${config?.address || ''}</div>
@@ -136,4 +136,10 @@ export const printThermalTicket = (orderData, config) => {
     doc.open();
     doc.write(htmlContent);
     doc.close();
+
+    // 3. Imprimir de forma manual / normal
+    setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+    }, 500);
 };
