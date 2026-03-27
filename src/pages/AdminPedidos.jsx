@@ -25,7 +25,7 @@ const DeliverIcon = () => <i className="bi bi-check-square" style={{ color: '#00
 export default function AdminPedidos() {
     const { user } = useContext(AuthContext);
     const { showLoading, hideLoading } = useLoading();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);

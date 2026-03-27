@@ -20,7 +20,7 @@ const UploadIcon = () => (
 export default function AdminGaleria() {
     const { user } = useContext(AuthContext);
     const { showLoading, hideLoading } = useLoading();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const [images, setImages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);

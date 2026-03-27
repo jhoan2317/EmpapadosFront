@@ -8,7 +8,7 @@ import { AuthContext } from "../context/AuthContext";
 export default function DashboardAdmin() {
     const { user } = useContext(AuthContext);
 
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
 
     function toggleSiderbar() {
         setCollapsed(!collapsed);

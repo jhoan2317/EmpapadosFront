@@ -13,7 +13,7 @@ import "../styles/admin-reportes.css";
 export default function AdminReportes() {
     const { user } = useContext(AuthContext);
     const { showLoading, hideLoading } = useLoading();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split('T')[0]);

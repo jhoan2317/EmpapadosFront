@@ -22,7 +22,7 @@ const TrashIcon = () => <i className="bi bi-trash3-fill" style={{ color: '#dc354
 export default function AdminProductos() {
     const { user } = useContext(AuthContext);
     const { showLoading, hideLoading } = useLoading();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);

@@ -23,7 +23,7 @@ const ViewIcon = () => <i className="bi bi-eye-fill" style={{ color: '#0d6efd' }
 export default function AdminMarketing() {
     const { user } = useContext(AuthContext);
     const { showLoading, hideLoading } = useLoading();
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const [data, setData] = useState({
         heroes: [],
         features: [],

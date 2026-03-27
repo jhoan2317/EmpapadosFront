@@ -27,7 +27,7 @@ export default function AdminPagos() {
     const { user } = useContext(AuthContext);
     const { showLoading, hideLoading } = useLoading();
 
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
