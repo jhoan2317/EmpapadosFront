@@ -1,33 +1,42 @@
-import { createContext, useState } from "react";
+import { createContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginRequest, logoutRequest } from "../services/authService";
-import Cookies from "js-cookie";
+import { auth } from "../firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
     const navigate = useNavigate();
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem("username");
-        return savedUser ? { username: savedUser } : null;
-    });
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    async function login(username, password) {
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            if (firebaseUser) {
+                setUser({
+                    email: firebaseUser.email,
+                    uid: firebaseUser.uid,
+                    displayName: firebaseUser.displayName
+                });
+                localStorage.setItem("username", firebaseUser.email);
+            } else {
+                setUser(null);
+                localStorage.removeItem("username");
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    async function login(email, password) {
         try {
-            await loginRequest(username, password);
-
-            // Las cookies (access_token y refresh_token) ahora las gestiona 
-            // automáticamente el backend como HTTPOnly por seguridad.
-            // Ya no las guardamos manualmente aquí para evitar duplicados.
-
-            // El nombre de usuario lo mantenemos en localStorage (fuera de las cookies)
-            localStorage.setItem("username", username);
-
-            setUser({ username });
+            await loginRequest(email, password);
+            // El estado del usuario se actualizará a través de onAuthStateChanged
             navigate("/dashboard");
         } catch (error) {
             console.error("Error en login:", error);
-            setUser(null);
             throw error;
         }
     }
@@ -35,24 +44,14 @@ export function AuthProvider({ children }) {
     async function logout() {
         try {
             await logoutRequest();
+            window.location.href = "/home";
         } catch (error) {
             console.error("Error al cerrar sesión:", error);
-        } finally {
-            // Limpiamos tod@ en el frontend independientemente del resultado del backend
-            Cookies.remove("access_token", { path: '/' });
-            Cookies.remove("refresh_token", { path: '/' });
-            Cookies.remove("accessToken", { path: '/' });
-            Cookies.remove("refreshToken", { path: '/' });
-            localStorage.removeItem("username");
-            setUser(null);
-            // Usamos window.location.href en lugar de navigate para forzar un refresh 
-            // que limpie las cookies de la consola inmediatamente.
-            window.location.href = "/home";
         }
     }
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

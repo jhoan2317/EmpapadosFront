@@ -1,64 +1,177 @@
-import api from '../api/axios';
+import { db, storage } from '../firebase/config';
+import { 
+    collection, 
+    getDocs, 
+    getDoc, 
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    doc, 
+    query, 
+    where, 
+    orderBy 
+} from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
-export const getCategories = async () => {
-    const response = await api.get('productos/categorias/');
-    return response.data;
-};
-
-export const getProducts = async (page = null) => {
-    const url = page ? `productos/productos/?page=${page}` : 'productos/productos/?no_pagination=true';
-    const response = await api.get(url);
-    return response.data;
-};
-
-export const getProduct = async (id) => {
-    const response = await api.get(`productos/productos/${id}/`);
-    return response.data;
-};
-
-export const createProduct = async (productData) => {
-    const response = await api.post('productos/productos/', productData);
-    return response.data;
-};
-
-export const updateProduct = async (id, productData) => {
-    const response = await api.put(`productos/productos/${id}/`, productData);
-    return response.data;
-};
-
-export const deleteProduct = async (id) => {
-    const response = await api.delete(`productos/productos/${id}/`);
-    return response.data;
-};
+const CATEGORIES_COLLECTION = 'categorias';
+const PRODUCTS_COLLECTION = 'productos';
+const RECETAS_COLLECTION = 'recetas';
 
 // CATEGORIAS
+export const getCategories = async () => {
+    try {
+        const querySnapshot = await getDocs(query(collection(db, CATEGORIES_COLLECTION), orderBy('nombre', 'asc')));
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error getting categories: ", error);
+        throw error;
+    }
+};
+
 export const createCategory = async (categoryData) => {
-    const response = await api.post('productos/categorias/', categoryData);
-    return response.data;
+    try {
+        const docRef = await addDoc(collection(db, CATEGORIES_COLLECTION), categoryData);
+        return { id: docRef.id, ...categoryData };
+    } catch (error) {
+        console.error("Error creating category: ", error);
+        throw error;
+    }
 };
 
 export const updateCategory = async (id, categoryData) => {
-    const response = await api.put(`productos/categorias/${id}/`, categoryData);
-    return response.data;
+    try {
+        const docRef = doc(db, CATEGORIES_COLLECTION, id);
+        await updateDoc(docRef, categoryData);
+        return { id, ...categoryData };
+    } catch (error) {
+        console.error("Error updating category: ", error);
+        throw error;
+    }
 };
 
 export const deleteCategory = async (id) => {
-    const response = await api.delete(`productos/categorias/${id}/`);
-    return response.data;
+    try {
+        const docRef = doc(db, CATEGORIES_COLLECTION, id);
+        await deleteDoc(docRef);
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting category: ", error);
+        throw error;
+    }
+};
+
+// PRODUCTOS
+export const getProducts = async (page = null) => {
+    try {
+        const querySnapshot = await getDocs(query(collection(db, PRODUCTS_COLLECTION), orderBy('nombre', 'asc')));
+        const products = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Simular respuesta paginada para mantener compatibilidad si es necesario
+        if (page === null) {
+            return products;
+        }
+
+        const pageSize = 10;
+        const startIndex = (page - 1) * pageSize;
+        const paginatedResults = products.slice(startIndex, startIndex + pageSize);
+
+        return {
+            results: paginatedResults,
+            count: products.length
+        };
+    } catch (error) {
+        console.error("Error getting products: ", error);
+        throw error;
+    }
+};
+
+export const getProduct = async (id) => {
+    try {
+        const docRef = doc(db, PRODUCTS_COLLECTION, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        } else {
+            throw new Error("Product not found");
+        }
+    } catch (error) {
+        console.error("Error getting product: ", error);
+        throw error;
+    }
+};
+
+export const createProduct = async (productData) => {
+    try {
+        const docRef = await addDoc(collection(db, PRODUCTS_COLLECTION), productData);
+        return { id: docRef.id, ...productData };
+    } catch (error) {
+        console.error("Error creating product: ", error);
+        throw error;
+    }
+};
+
+export const updateProduct = async (id, productData) => {
+    try {
+        const docRef = doc(db, PRODUCTS_COLLECTION, id);
+        await updateDoc(docRef, productData);
+        return { id, ...productData };
+    } catch (error) {
+        console.error("Error updating product: ", error);
+        throw error;
+    }
+};
+
+export const deleteProduct = async (id) => {
+    try {
+        const docRef = doc(db, PRODUCTS_COLLECTION, id);
+        await deleteDoc(docRef);
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting product: ", error);
+        throw error;
+    }
 };
 
 // RECETAS
+export const getProductRecipes = async (productId) => {
+    try {
+        const q = query(collection(db, RECETAS_COLLECTION), where("producto", "==", productId));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error getting product recipes: ", error);
+        throw error;
+    }
+};
+
 export const createRecipe = async (recipeData) => {
-    const response = await api.post('productos/recetas/', recipeData);
-    return response.data;
+    try {
+        const docRef = await addDoc(collection(db, RECETAS_COLLECTION), recipeData);
+        return { id: docRef.id, ...recipeData };
+    } catch (error) {
+        console.error("Error creating recipe: ", error);
+        throw error;
+    }
 };
 
 export const updateRecipe = async (id, recipeData) => {
-    const response = await api.put(`productos/recetas/${id}/`, recipeData);
-    return response.data;
+    try {
+        const docRef = doc(db, RECETAS_COLLECTION, id);
+        await updateDoc(docRef, recipeData);
+        return { id, ...recipeData };
+    } catch (error) {
+        console.error("Error updating recipe: ", error);
+        throw error;
+    }
 };
 
 export const deleteRecipe = async (id) => {
-    const response = await api.delete(`productos/recetas/${id}/`);
-    return response.data;
+    try {
+        const docRef = doc(db, RECETAS_COLLECTION, id);
+        await deleteDoc(docRef);
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting recipe: ", error);
+        throw error;
+    }
 };

@@ -371,12 +371,16 @@ export default function Home() {
 
                     return {
                         producto: item.product.id,
+                        producto_nombre: item.product.nombre,
                         cantidad: item.quantity,
                         precio_unitario: calculateItemTotalPrice(item.product, item.personalization),
+                        subtotal: calculateItemTotalPrice(item.product, item.personalization) * item.quantity,
                         swaps: item.swaps || {},
                         additions_data: additionsData
                     };
-                })
+                }),
+                total: subtotal,
+                estado: 'pendiente'
             };
 
             const response = await createOrder(orderData);

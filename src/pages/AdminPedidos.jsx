@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { getOrders, updateOrderStatus, updateOrder, deleteOrder, getOrder } from "../services/orderService";
+import { getOrders, updateOrderStatus, updateOrder, deleteOrder, getOrder, deductInventoryFromOrder } from "../services/orderService";
 import { getGlobalConfig } from "../services/marketingService";
 import { getProducts } from "../services/productService";
 import { printThermalTicket } from "../services/printService";
@@ -101,8 +101,19 @@ export default function AdminPedidos() {
         try {
             showLoading(LOADING_CONFIG.TEXTS.SAVING);
             await updateOrderStatus(id, newStatus);
+            
+            // Si el nuevo estado es 'entregado', descontamos del inventario
+            if (newStatus === 'entregado') {
+                try {
+                    await deductInventoryFromOrder(id);
+                } catch (invError) {
+                    console.error("Error al descontar inventario:", invError);
+                    // Solo mostramos alerta si es un error real, no bloqueamos la actualización de estado
+                }
+            }
+
             setEditingOrder(null);
-            setModalConfig({ isOpen: true, title: "Estado Actualizado", message: "El estado del pedido se actualizó correctamente.", type: "success" });
+            setModalConfig({ isOpen: true, title: "Estado Actualizado", message: `El pedido se marcó como ${newStatus.toUpperCase()} y se procesó el inventario.`, type: "success" });
             await loadData(currentPage);
         } catch (error) {
             console.error("Error al actualizar estado:", error);
@@ -150,18 +161,35 @@ export default function AdminPedidos() {
         try {
             showLoading(LOADING_CONFIG.TEXTS.SAVING);
             
+            const newTotal = editedOrderDetails.reduce((sum, item) => sum + parseFloat(item.subtotal || (item.precio_unitario * item.cantidad) || 0), 0);
+            
             const updatedData = {
                 estado: editedOrderStatus,
                 observaciones: editedOrderNotes,
                 detalles: editedOrderDetails.map(d => ({
                     producto: d.producto,
-                    cantidad: d.cantidad
-                }))
+                    producto_nombre: d.producto_nombre,
+                    cantidad: d.cantidad,
+                    precio_unitario: d.precio_unitario,
+                    subtotal: parseFloat(d.subtotal || (d.precio_unitario * d.cantidad) || 0)
+                })),
+                total: newTotal,
+                inventario_descontado: false // Reiniciamos para permitir re-procesar inventario si cambió
             };
             
             await updateOrder(editingOrder.id, updatedData);
+
+            // Si el nuevo estado es 'entregado', descontamos del inventario
+            if (editedOrderStatus === 'entregado') {
+                try {
+                    await deductInventoryFromOrder(editingOrder.id);
+                } catch (invError) {
+                    console.error("Error al descontar inventario:", invError);
+                }
+            }
+
             setEditingOrder(null);
-            setModalConfig({ isOpen: true, title: "Pedido Actualizado", message: "Los cambios en el pedido se guardaron correctamente.", type: "success" });
+            setModalConfig({ isOpen: true, title: "Pedido Actualizado", message: "Los cambios se guardaron y se procesó el inventario si correspondía.", type: "success" });
             await loadData(currentPage);
         } catch (error) {
             console.error("Error al actualizar pedido:", error);
@@ -173,10 +201,17 @@ export default function AdminPedidos() {
     
     const handleAddProductToOrder = () => {
         if (!newProductSelected) return;
-        const selectedProdObj = products.find(p => p.id === parseInt(newProductSelected));
-        if (!selectedProdObj) return;
         
-        const existingIndex = editedOrderDetails.findIndex(d => d.producto === selectedProdObj.id);
+        // Comparación robusta de strings
+        const selectedIdStr = String(newProductSelected);
+        const selectedProdObj = products.find(p => String(p.id) === selectedIdStr);
+        
+        if (!selectedProdObj) {
+            console.error("Producto no encontrado:", selectedIdStr, "en lista de", products.length);
+            return;
+        }
+        
+        const existingIndex = editedOrderDetails.findIndex(d => String(d.producto) === String(selectedProdObj.id));
         
         let updatedDetails = [...editedOrderDetails];
         if (existingIndex >= 0) {
@@ -329,13 +364,13 @@ export default function AdminPedidos() {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td>${parseFloat(order.total).toLocaleString()}</td>
+                                            <td>${parseFloat(order.total || 0).toLocaleString()}</td>
                                             <td>
                                                 <span
                                                     className="status-badge"
-                                                    style={{ ...getStatusStyle(order.estado), fontSize: '11px' }}
+                                                    style={{ ...getStatusStyle(order.estado || 'pendiente'), fontSize: '11px' }}
                                                 >
-                                                    {order.estado.toUpperCase()}
+                                                    {(order.estado || 'pendiente').toUpperCase()}
                                                 </span>
                                             </td>
                                             <td>{new Date(order.fecha).toLocaleDateString()}</td>
@@ -465,6 +500,7 @@ export default function AdminPedidos() {
                                         style={{ width: '70px', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }}
                                     />
                                     <button 
+                                        type="button"
                                         onClick={handleAddProductToOrder}
                                         style={{ background: '#28a745', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer' }}
                                     >

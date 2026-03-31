@@ -40,7 +40,7 @@ export default function Login() {
         <div className="input-group">
           <span className="input-icon"><i className="bi bi-person-fill" style={{ fontSize: '1.2rem' }}></i></span>
           <input
-            placeholder="Usuario"
+            placeholder="Correo Electrónico"
             value={username}
             onChange={(e) => setUser(e.target.value)}
             required

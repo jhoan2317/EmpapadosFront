@@ -1,31 +1,27 @@
-import axios from "axios";
+import { auth } from "../firebase/config";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 
-const API_URL = import.meta.env.VITE_API_URL;
+/**
+ * Nota: Firebase Auth usa Email/Password por defecto. 
+ * Si el usuario antes usaba un 'username', ahora deberá usar un correo.
+ * Ejemplo: admin@empapados.com
+ */
 
-export const loginRequest = async (username, password) => {
-    const response = await axios.post(
-        `${API_URL}/api/usuarios/admin-login/`,
-        {
-            username,
-            password
-        },
-        {
-            withCredentials: true
-        }
-    );
-
-    return response.data;
+export const loginRequest = async (email, password) => {
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        return userCredential.user;
+    } catch (error) {
+        console.error("Error en Firebase Login:", error);
+        throw error;
+    }
 };
 
 export const logoutRequest = async () => {
-    await axios.post(
-        `${API_URL}/api/usuarios/logout/`,
-        {},
-        {
-            withCredentials: true
-        }
-    );
-
-    return response.data;
+    try {
+        await signOut(auth);
+    } catch (error) {
+        console.error("Error en Firebase Logout:", error);
+        throw error;
+    }
 };
-

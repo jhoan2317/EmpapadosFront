@@ -1,38 +1,160 @@
-import api from '../api/axios';
+import { db } from '../firebase/config';
+import { getProductRecipes } from './productService';
+import { registerInventoryExit } from './inventoryService';
+import { 
+    collection, 
+    getDocs, 
+    getDoc, 
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    doc, 
+    query, 
+    where, 
+    orderBy,
+    collectionGroup
+} from "firebase/firestore";
+
+const ORDERS_COLLECTION = 'pedidos';
 
 export const getOrders = async (date = null, page = 1, type = 'todas', status = null) => {
-    // Usamos el endpoint registrado en el router del backend: /api/pedidos/pedidos/
-    const params = new URLSearchParams();
-    if (date) params.append('fecha', date);
-    if (page) params.append('page', page);
-    if (type && type !== 'todas') params.append('tipo', type);
-    if (status) params.append('estado', status);
+    try {
+        let q = query(collection(db, ORDERS_COLLECTION), orderBy('fecha', 'desc'));
 
-    const response = await api.get(`pedidos/pedidos/?${params.toString()}`);
-    return response.data;
+        if (date) {
+            q = query(q, where('fecha', '==', date));
+        }
+        if (type && type !== 'todas') {
+            q = query(q, where('tipo', '==', type));
+        }
+        if (status) {
+            q = query(q, where('estado', '==', status));
+        }
+
+        const querySnapshot = await getDocs(q);
+        const orders = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        const pageSize = 10;
+        const startIndex = (page - 1) * pageSize;
+        const paginatedResults = orders.slice(startIndex, startIndex + pageSize);
+
+        // Firestore handle pagination differently, but for now we return sliced local results
+        return {
+            results: paginatedResults,
+            count: orders.length
+        };
+    } catch (error) {
+        console.error("Error getting orders: ", error);
+        throw error;
+    }
 };
 
 export const getOrder = async (id) => {
-    const response = await api.get(`pedidos/pedidos/${id}/`);
-    return response.data;
+    try {
+        const docRef = doc(db, ORDERS_COLLECTION, id);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() };
+        } else {
+            throw new Error("Order not found");
+        }
+    } catch (error) {
+        console.error("Error getting order: ", error);
+        throw error;
+    }
 };
 
 export const updateOrderStatus = async (id, status) => {
-    const response = await api.patch(`pedidos/pedidos/${id}/`, { estado: status });
-    return response.data;
+    try {
+        const docRef = doc(db, ORDERS_COLLECTION, id);
+        await updateDoc(docRef, { estado: status });
+        return { id, estado: status };
+    } catch (error) {
+        console.error("Error updating order status: ", error);
+        throw error;
+    }
 };
 
 export const updateOrder = async (id, orderData) => {
-    const response = await api.patch(`pedidos/pedidos/${id}/`, orderData);
-    return response.data;
+    try {
+        const docRef = doc(db, ORDERS_COLLECTION, id);
+        await updateDoc(docRef, orderData);
+        return { id, ...orderData };
+    } catch (error) {
+        console.error("Error updating order: ", error);
+        throw error;
+    }
 };
 
 export const deleteOrder = async (id) => {
-    const response = await api.delete(`pedidos/pedidos/${id}/`);
-    return response.data;
+    try {
+        const docRef = doc(db, ORDERS_COLLECTION, id);
+        await deleteDoc(docRef);
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting order: ", error);
+        throw error;
+    }
 };
 
 export const createOrder = async (orderData) => {
-    const response = await api.post('pedidos/pedidos/', orderData);
-    return response.data;
+    try {
+        const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
+            ...orderData,
+            fecha: orderData.fecha || new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString(),
+            inventario_descontado: false // Flag para evitar doble descuento
+        });
+        return { id: docRef.id, ...orderData };
+    } catch (error) {
+        console.error("Error creating order: ", error);
+        throw error;
+    }
+};
+
+export const deductInventoryFromOrder = async (orderId) => {
+    try {
+        const orderRef = doc(db, ORDERS_COLLECTION, orderId);
+        const orderSnap = await getDoc(orderRef);
+        
+        if (!orderSnap.exists()) throw new Error("Order not found");
+        
+        const orderData = orderSnap.data();
+        
+        // Evitar doble descuento
+        if (orderData.inventario_descontado) {
+            console.log("Inventario ya descontado para este pedido");
+            return { success: true, alreadyDeducted: true };
+        }
+
+        const details = orderData.detalles || [];
+        
+        for (const item of details) {
+            // Buscamos la receta del producto
+            const recipes = await getProductRecipes(item.producto);
+            
+            for (const row of recipes) {
+                // Cantidad total a descontar = receta_unitario * cantidad_pedido
+                const totalDeduction = parseFloat(row.cantidad) * parseInt(item.cantidad);
+                
+                await registerInventoryExit({
+                    ingrediente_id: row.ingrediente,
+                    cantidad: totalDeduction,
+                    motivo: `Venta Pedido #${orderId.slice(-5)}`
+                });
+            }
+        }
+
+        // Marcamos como descontado
+        await updateDoc(orderRef, { inventario_descontado: true });
+        
+        return { success: true };
+    } catch (error) {
+        console.error("Error deducting inventory from order:", error);
+        throw error;
+    }
 };

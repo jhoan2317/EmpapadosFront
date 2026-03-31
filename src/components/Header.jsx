@@ -1,5 +1,7 @@
 import { useContext, useEffect, useState, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
+import { db } from "../firebase/config";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 export default function Header({ onToggle }) {
     const { logout } = useContext(AuthContext);
@@ -9,68 +11,49 @@ export default function Header({ onToggle }) {
     const ws = useRef(null);
 
     useEffect(() => {
-        let timeoutId;
-        const isUnmounted = { current: false };
+        const today = new Date().toISOString().split('T')[0];
+        const pedidosRef = collection(db, "pedidos");
+        const q = query(pedidosRef, where("fecha", "==", today));
+        
+        let initialLoad = true;
 
-        const connectWS = () => {
-            if (isUnmounted.current) return;
-
-            // Evitar crear múltiples conexiones si ya hay una abriéndose
-            if (ws.current && (ws.current.readyState === WebSocket.CONNECTING || ws.current.readyState === WebSocket.OPEN)) {
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            // Ignoramos la carga inicial para no hacer sonar la campana 
+            // con los pedidos que ya existían hoy.
+            if (initialLoad) {
+                initialLoad = false;
                 return;
             }
 
-            const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-            const wsUrl = apiUrl.replace(/^http/, "ws");
-            ws.current = new WebSocket(`${wsUrl}/ws/notifications/`);
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added") {
+                    const data = change.doc.data();
+                    
+                    const notif = {
+                        id: change.doc.id.slice(-5), // Usamos los ultimos 5 del ID
+                        cliente: data.nombre_cliente || "Cliente",
+                        tipo: (data.tipo_pedido || data.tipo || "").toUpperCase(),
+                        total: data.total || data.precio || 0
+                    };
 
-            ws.current.onopen = () => {
-                if (!isUnmounted.current) {
-                    console.log("🟢 WebSocket Conectado");
-                }
-            };
-
-            ws.current.onmessage = (event) => {
-                if (isUnmounted.current) return;
-                const data = JSON.parse(event.data);
-
-                if (data.type === "new_order" || data.type === "new_testimonial") {
                     setNotifications((prev) => {
-                        const notifId = `${data.type}-${data.message.id}`;
-                        if (prev.find(n => n.uniqueId === notifId)) return prev;
-                        return [{ ...data.message, uniqueId: notifId, notifType: data.type }, ...prev].slice(0, 10);
+                        // Evitar duplicados rápidos
+                        if (prev.find(n => n.id === notif.id)) return prev;
+                        return [notif, ...prev].slice(0, 10);
                     });
+                    
                     setNewNotification(true);
-                    window.dispatchEvent(new CustomEvent('new-notification', { detail: data.type }));
+                    window.dispatchEvent(new CustomEvent('new-notification', { detail: "new_order" }));
 
                     const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
                     audio.play().catch(() => { }); // Silencioso si falla
                 }
-            };
+            });
+        }, (error) => {
+            console.error("Error listening to new orders:", error);
+        });
 
-            ws.current.onclose = () => {
-                if (!isUnmounted.current) {
-                    console.log("🟡 WebSocket Desconectado. Reintentando...");
-                    timeoutId = setTimeout(connectWS, 5000);
-                }
-            };
-
-            ws.current.onerror = () => {
-                // No logeamos el error aquí para evitar ruido, onclose se encargará del reconectado
-                ws.current.close();
-            };
-        };
-
-        connectWS();
-
-        return () => {
-            isUnmounted.current = true;
-            if (timeoutId) clearTimeout(timeoutId);
-            if (ws.current) {
-                ws.current.onclose = null; // Quitar el handler para evitar el bucle de reconexión al desmontar
-                ws.current.close();
-            }
-        };
+        return () => unsubscribe();
     }, []);
 
     const toggleNotifications = () => {

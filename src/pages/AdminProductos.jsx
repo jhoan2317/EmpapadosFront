@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, getProduct, createRecipe, updateRecipe, deleteRecipe } from "../services/productService";
+import { getProducts, getCategories, createProduct, updateProduct, deleteProduct, getProduct, createRecipe, updateRecipe, deleteRecipe, getProductRecipes } from "../services/productService";
 import { getInventory } from "../services/inventoryService";
 import { getImages } from "../services/galleryService";
 import { uploadImageCloudinary, getOptimizedImage } from "../services/cloudinaryService";
@@ -112,18 +112,21 @@ export default function AdminProductos() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const data = new FormData();
-        data.append("nombre", formData.nombre);
-        data.append("descripcion", formData.descripcion || "");
-        data.append("precio", formData.precio);
-        data.append("categoria", formData.categoria);
-        data.append("activo", formData.activo);
+        
+        const data = {
+            nombre: formData.nombre,
+            descripcion: formData.descripcion || "",
+            precio: parseFloat(formData.precio),
+            categoria: formData.categoria,
+            activo: formData.activo
+        };
+
         if (formData.imagen_galeria) {
-            data.append("imagen_galeria", formData.imagen_galeria);
+            data.imagen_galeria = formData.imagen_galeria;
         }
 
         if (formData.imagen) {
-            data.append("imagen", formData.imagen);
+            data.imagen = formData.imagen;
         }
 
         try {
@@ -233,12 +236,25 @@ export default function AdminProductos() {
     const handleOpenRecipeModal = async (prod) => {
         showLoading("Cargando receta...");
         try {
-            const [inventario, prodDetailed] = await Promise.all([
-                getInventory(null), // Traer todo el inventario
-                getProduct(prod.id)
+            const [inventario, prodDetailed, recetasProd] = await Promise.all([
+                getInventory(null),
+                getProduct(prod.id),
+                getProductRecipes(prod.id)
             ]);
-            setAllIngredients(Array.isArray(inventario) ? inventario : (inventario.results || []));
-            setRecipeData(prodDetailed.receta || []);
+            
+            const invData = Array.isArray(inventario) ? inventario : (inventario.results || []);
+            setAllIngredients(invData);
+
+            const mappedRecipes = recetasProd.map(r => {
+                const i = invData.find(ing => ing.id === r.ingrediente);
+                return {
+                    ...r,
+                    ingrediente_nombre: i ? i.nombre_ingrediente : 'Desconocido',
+                    unidad_medida: i ? i.unidad_medida : ''
+                };
+            });
+
+            setRecipeData(mappedRecipes);
             setEditingId(prod.id);
             setShowRecipeModal(true);
         } catch (error) {
@@ -260,9 +276,13 @@ export default function AdminProductos() {
             };
             const added = await createRecipe(data);
 
-            // Recargar producto para tener la receta actualizada con nombres
-            const updatedProd = await getProduct(editingId);
-            setRecipeData(updatedProd.receta);
+            const i = allIngredients.find(ing => ing.id === newIngredient.ingrediente);
+            setRecipeData([...recipeData, {
+                ...added,
+                ingrediente_nombre: i ? i.nombre_ingrediente : 'Desconocido',
+                unidad_medida: i ? i.unidad_medida : ''
+            }]);
+
             setNewIngredient({ ingrediente: "", cantidad: "" });
         } catch (error) {
             console.error("Error al agregar ingrediente:", error);
