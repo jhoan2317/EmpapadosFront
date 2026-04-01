@@ -1048,13 +1048,13 @@ export default function Home() {
                 <div className="footer-stacked-centered">
                     <div className="footer-info-block">
                         <h3>Contacto</h3>
-                        <p>Tel: {marketingData.config?.phone || "(+57) 310 0000000"}</p>
-                        <p>Email: {marketingData.config?.email || "contacto@empapados.com"}</p>
+                        <p>Tel: {marketingData.config?.phone || "(+57) 000 0000000"}</p>
+                        <p>Email: {marketingData.config?.email || "contacto@tuempresa.com"}</p>
                     </div>
 
                     <div className="footer-info-block">
                         <h3>Dirección</h3>
-                        <p>{marketingData.config?.address || "Pereira, Colombia"}</p>
+                        <p>{marketingData.config?.address || "Dirección no configurada"}</p>
                     </div>
 
                     {marketingData.config?.opening_hours && (
@@ -1095,7 +1095,7 @@ export default function Home() {
                 </div>
 
                 <div className="footer-bottom">
-                    <p>&copy; {new Date().getFullYear()} {marketingData.config?.site_name || "Empapados Pop"}. Todos los derechos reservados.</p>
+                    <p>{marketingData.config?.footer_text || `© ${new Date().getFullYear()} ${marketingData.config?.site_name || "Empapados Pop"}. Todos los derechos reservados.`}</p>
                 </div>
             </footer>
 
