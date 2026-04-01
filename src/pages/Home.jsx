@@ -1048,8 +1048,8 @@ export default function Home() {
                 <div className="footer-stacked-centered">
                     <div className="footer-info-block">
                         <h3>Contacto</h3>
-                        <p>Tel: {marketingData.config?.contact_phone || "(+57) 322 6720668"}</p>
-                        <p>Email: {marketingData.config?.contact_email || "jhoanhrndz22@gmail.com"}</p>
+                        <p>Tel: {marketingData.config?.phone || "(+57) 310 0000000"}</p>
+                        <p>Email: {marketingData.config?.email || "contacto@empapados.com"}</p>
                     </div>
 
                     <div className="footer-info-block">
