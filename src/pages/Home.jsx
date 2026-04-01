@@ -19,10 +19,6 @@ const ProductCard = ({ product, onSelect }) => {
     const { nombre, precio, descripcion, imagen, imagen_url } = product;
     let imageUrl = getOptimizedImage(imagen_url || imagen);
 
-    if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
-        imageUrl = `http://localhost:8000${imageUrl}`;
-    }
-
     return (
         <div className="card product-card mb-3" onClick={() => onSelect(product)} style={{ border: 'none', cursor: 'pointer' }}>
             <div className="row g-0 h-100">
@@ -800,7 +796,7 @@ export default function Home() {
                                 <div className="cart-list">
                                     {cart.map((item) => (
                                         <div className="cart-item" key={item.id}>
-                                            <img src={(item.product.imagen_url || item.product.imagen)?.startsWith('http') ? getOptimizedImage(item.product.imagen_url || item.product.imagen, "w_100,h_100,c_fill") : `http://localhost:8000${(item.product.imagen_url || item.product.imagen)}`} alt="" />
+                                            <img src={getOptimizedImage(item.product.imagen_url || item.product.imagen, "w_100,h_100,c_fill")} alt="" />
                                             <div className="cart-item-info">
                                                 <div className="cart-item-row">
                                                     <span className="cart-item-name">{item.product.nombre}</span>
@@ -912,7 +908,7 @@ export default function Home() {
                         </button>
                         <div className="modal-product-layout">
                             <div className="modal-image-pane">
-                                <img src={(selectedProduct.imagen_url || selectedProduct.imagen)?.startsWith('http') ? getOptimizedImage(selectedProduct.imagen_url || selectedProduct.imagen, "w_800,c_fit") : `http://localhost:8000${(selectedProduct.imagen_url || selectedProduct.imagen)}`} alt={selectedProduct.nombre} />
+                                <img src={getOptimizedImage(selectedProduct.imagen_url || selectedProduct.imagen, "w_800,c_fit")} alt={selectedProduct.nombre} />
                             </div>
                             <div className="modal-details-pane">
                                 <div className="modal-details-scroll">
