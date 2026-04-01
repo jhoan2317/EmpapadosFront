@@ -3,6 +3,7 @@ import "../styles/dashboard.css";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { AuthContext } from "../context/AuthContext";
+import logo from "../assets/logo.png";
 
 
 export default function DashboardAdmin() {
@@ -20,11 +21,11 @@ export default function DashboardAdmin() {
 
             <Sidebar user={user} />
 
-            <main className="app-main">
+            <main className="app-main admin-main-centered">
                 <div className="welcome-container">
-                    <h1 className="welcome-title">
-                        Panel de <br /> Administrador
-                    </h1>
+                    <div className="admin-logo-wrapper">
+                        <img src={logo} alt="Logo" className="admin-main-logo" />
+                    </div>
                 </div>
             </main>
         </div>

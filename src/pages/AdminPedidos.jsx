@@ -373,7 +373,7 @@ export default function AdminPedidos() {
                                                     {(order.estado || 'pendiente').toUpperCase()}
                                                 </span>
                                             </td>
-                                            <td>{new Date(order.fecha).toLocaleDateString()}</td>
+                                            <td>{order.fecha ? order.fecha.split('-').reverse().join('/') : 'N/A'}</td>
                                             <td>
                                                 <div className="action-btns" style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                                                     <button onClick={() => handleView(order)} className="action-btn view" title="Ver Detalle"><ViewIcon /></button>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { getInventory, updateInventory, createInventoryEntry, registerInventoryExit, getInventoryItem, getInventorySummary, getMovements, deleteInventoryEntry, registerTasting } from "../services/inventoryService";
+import { getInventory, updateInventory, createInventoryEntry, registerInventoryExit, getInventoryItem, getInventorySummary, getMovements, deleteInventoryEntry, registerTasting, deleteTastingMovements } from "../services/inventoryService";
 import { getCategories, getProducts } from "../services/productService";
 import { useLoading } from "../context/LoadingContext";
 import { LOADING_CONFIG } from "../components/GlobalSpinner";
@@ -61,6 +61,7 @@ export default function AdminInventario() {
     const [tastingHistory, setTastingHistory] = useState([]);
     const [tastPage, setTastPage] = useState(1);
     const [tastTotal, setTastTotal] = useState(0);
+    const [tastingDeleteConfirm, setTastingDeleteConfirm] = useState({ isOpen: false, data: null });
 
     const UNIDADES = [
         { value: 'unidades', label: 'Unidades' },
@@ -135,7 +136,8 @@ export default function AdminInventario() {
                         fecha: mov.fecha,
                         producto: producto,
                         persona: persona,
-                        usuario: mov.usuario
+                        usuario: mov.usuario,
+                        motivo: mov.motivo // Fundamental para la eliminación
                     };
                 }
             });
@@ -230,7 +232,8 @@ export default function AdminInventario() {
             await registerInventoryExit({
                 ingrediente_id: exitData.id,
                 cantidad: parseFloat(exitData.cantidad),
-                motivo: exitData.motivo
+                motivo: exitData.motivo,
+                usuario: user?.email ? user.email.split('@')[0] : 'admin'
             });
             setModalConfig({ isOpen: true, title: "Salida Registrada", message: "La salida de inventario se procesó con éxito.", type: "success" });
             setExitModalOpen(false);
@@ -248,7 +251,10 @@ export default function AdminInventario() {
         e.preventDefault();
         try {
             showLoading(LOADING_CONFIG.TEXTS.SAVING);
-            await registerTasting(tastingData);
+            await registerTasting({
+                ...tastingData,
+                usuario: user?.email ? user.email.split('@')[0] : 'admin'
+            });
             setModalConfig({ isOpen: true, title: "Degustación Registrada", message: "Se han descontado los ingredientes correspondientes a la receta.", type: "success" });
             setTastingModalOpen(false);
             setTastingData({ producto_id: "", cantidad: 1, descripcion: "" });
@@ -257,7 +263,31 @@ export default function AdminInventario() {
             await loadTastingHistory(1);
         } catch (error) {
             console.error("Error al registrar degustación:", error);
-            setModalConfig({ isOpen: true, title: "Error", message: error.response?.data?.error || "Error registrando degustación. Asegúrate de que el producto tiene receta.", type: "error" });
+            setModalConfig({ isOpen: true, title: "Error", message: error.message || "Error registrando degustación. Asegúrate de que el producto tiene receta.", type: "error" });
+        } finally {
+            hideLoading();
+        }
+    };
+
+    const handleDeleteTasting = (tasting) => {
+        setTastingDeleteConfirm({ isOpen: true, data: tasting });
+    };
+
+    const confirmExecutionDeleteTasting = async () => {
+        const tasting = tastingDeleteConfirm.data;
+        if (!tasting) return;
+        
+        try {
+            showLoading(LOADING_CONFIG.TEXTS.DELETING);
+            await deleteTastingMovements(tasting);
+            setModalConfig({ isOpen: true, title: '¡Eliminado!', message: 'La degustación ha sido eliminada y el inventario restaurado.', type: 'success' });
+            setTastingDeleteConfirm({ isOpen: false, data: null });
+            await loadData(currentPage);
+            await loadSummary();
+            await loadTastingHistory(1);
+        } catch (error) {
+            console.error('Error al eliminar degustación:', error);
+            setModalConfig({ isOpen: true, title: 'Error', message: error.message || 'No se pudo eliminar la degustación.', type: 'error' });
         } finally {
             hideLoading();
         }
@@ -399,6 +429,27 @@ export default function AdminInventario() {
                                                     <i className="bi bi-person-fill me-2"></i>
                                                     {mov.persona}
                                                 </h5>
+                                                <button
+                                                    onClick={() => handleDeleteTasting(mov)}
+                                                    title="Eliminar degustación"
+                                                    className="btn-close-tasting"
+                                                    style={{ 
+                                                        background: 'rgba(220, 53, 69, 0.1)', 
+                                                        border: 'none', 
+                                                        cursor: 'pointer', 
+                                                        color: '#dc3545', 
+                                                        fontSize: '18px', 
+                                                        padding: '5px', 
+                                                        borderRadius: '50%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        lineHeight: 1,
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    <i className="bi bi-x"></i>
+                                                </button>
                                             </div>
                                             <p className="text-muted mb-0 mt-3" style={{ fontSize: '14px', fontWeight: 'bold' }}>
                                                 <i className="bi bi-box-seam me-1"></i>
@@ -548,6 +599,23 @@ export default function AdminInventario() {
                     </div>
                 )
                 }
+
+                {/* MODAL CONFIRMACIÓN ELIMINAR DEGUSTACIÓN */}
+                {tastingDeleteConfirm.isOpen && (
+                    <div className="modal-overlay" onClick={() => setTastingDeleteConfirm({ isOpen: false, data: null })}>
+                        <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                            <div className="modal-icon-container" style={{ marginBottom: '1.5rem' }}>
+                                <i className="bi bi-exclamation-circle-fill" style={{ fontSize: '3rem', color: '#dc3545' }}></i>
+                            </div>
+                            <h3>¿Eliminar Degustación?</h3>
+                            <p>Se restaurará automáticamente el stock de los ingredientes asociados a esta degustación. ¿Deseas continuar?</p>
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '2rem' }}>
+                                <button className="btn btn-secondary w-100" onClick={() => setTastingDeleteConfirm({ isOpen: false, data: null })}>Cancelar</button>
+                                <button className="btn btn-danger w-100" onClick={confirmExecutionDeleteTasting}>Confirmar</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main >
 
             {/* Modal de Salida por Degustación */}

@@ -359,11 +359,37 @@ body {
   width: 100%;
 }
 
-.welcome-title {
-  font-size: 2.5rem;
-  color: #ffb703;
-  padding: 20px;
+.admin-main-centered {
+  background: #fff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: calc(100vh - 60px) !important;
+  overflow: hidden;
 }
+
+.welcome-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.admin-logo-wrapper {
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-main-logo {
+  max-width: 600px;
+  max-height: 600px;
+  object-fit: contain;
+}
+
 
 /* ---------------------------------------------------
    VISTA COMPUTADOR (Escritorio)

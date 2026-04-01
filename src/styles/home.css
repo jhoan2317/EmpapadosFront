@@ -1376,6 +1376,62 @@ body {
     border-top: 1px solid #f0f0f0;
 }
 
+.developer-branding {
+    background-color: #fafafa;
+    border-top: 1px solid #eee;
+    padding: 40px 0;
+}
+
+.dev-full-logo {
+    max-width: 180px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border-radius: 8px; /* Pequeño redondeo en esquinas, opcional para que no sea cortante, pero manteniendo la forma de la imagen original */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.dev-contact-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.dev-social-icons {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.dev-icon-link {
+    font-size: 22px;
+    transition: transform 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.dev-icon-link.whatsapp {
+    color: #25D366;
+}
+
+.dev-icon-link.email {
+    color: #007bff; /* Azul */
+}
+
+.dev-icon-link:hover {
+    transform: scale(1.2);
+}
+
+@media (max-width: 768px) {
+    .dev-full-logo {
+        max-width: 140px;
+    }
+}
+
 .footer-bottom {
     border-top: 1px solid #333;
     padding-top: 30px;

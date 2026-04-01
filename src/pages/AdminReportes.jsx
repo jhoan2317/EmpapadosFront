@@ -16,7 +16,10 @@ export default function AdminReportes() {
     const [collapsed, setCollapsed] = useState(true);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDay, setSelectedDay] = useState(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
     const [salesType, setSalesType] = useState("todas"); // todas, local, domicilio
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
@@ -158,7 +161,7 @@ export default function AdminReportes() {
                                     {filteredOrders.length > 0 ? filteredOrders.map(order => (
                                         <tr key={order.id}>
 
-                                            <td>{new Date(order.fecha).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td>
+                                            <td>{order.fecha ? order.fecha.split('-').reverse().join('/') : 'N/A'}</td>
                                             <td>{order.nombre_cliente}</td>
                                             <td><span className="status-badge" style={{ backgroundColor: '#f0f0f0', color: '#333' }}>{order.tipo_pedido.toUpperCase()}</span></td>
                                             <td>{order.tipo_pedido === 'local' ? `Mesa ${order.numero_mesa}` : (order.direccion || 'Domicilio')}</td>

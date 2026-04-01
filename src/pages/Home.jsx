@@ -7,6 +7,7 @@ import { getHeroSections, getFeatures, getTestimonials, getGlobalConfig, createT
 import { getInventory } from "../services/inventoryService";
 import { printThermalTicket } from "../services/printService";
 import logo from "../assets/logo.png";
+import jhoanLogo from "../assets/jhoan.jpeg";
 import "../styles/home.css";
 
 // Icons
@@ -1040,6 +1041,23 @@ export default function Home() {
                     </div>
                 </div>
             )}
+
+            <section className="developer-branding">
+                <div className="container text-center py-4">
+                    <p style={{ color: '#666', fontSize: '13px', marginBottom: '10px' }}>Aplicación creada por:</p>
+                    <img src={jhoanLogo} alt="Developer Logo" className="dev-full-logo" />
+                    <div className="dev-contact-row">
+                        <div className="dev-social-icons">
+                            <a href="https://wa.me/573226720668" target="_blank" rel="noreferrer" title="WhatsApp" className="dev-icon-link whatsapp">
+                                <i className="bi bi-whatsapp"></i>
+                            </a>
+                            <a href="mailto:jhoanhrndz22@gmail.com" title="Enviar Correo" className="dev-icon-link email">
+                                <i className="bi bi-envelope-at-fill"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* FOOTER DINÁMICO */}
             <footer className="main-footer">

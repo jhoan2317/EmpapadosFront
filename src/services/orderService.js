@@ -105,7 +105,10 @@ export const createOrder = async (orderData) => {
     try {
         const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
             ...orderData,
-            fecha: orderData.fecha || new Date().toISOString().split('T')[0],
+            fecha: orderData.fecha || (() => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            })(),
             createdAt: new Date().toISOString(),
             inventario_descontado: false // Flag para evitar doble descuento
         });
