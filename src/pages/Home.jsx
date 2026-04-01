@@ -1042,22 +1042,6 @@ export default function Home() {
                 </div>
             )}
 
-            <section className="developer-branding">
-                <div className="container text-center py-4">
-                    <p style={{ color: '#666', fontSize: '13px', marginBottom: '10px' }}>Aplicación creada por:</p>
-                    <img src={jhoanLogo} alt="Developer Logo" className="dev-full-logo" />
-                    <div className="dev-contact-row">
-                        <div className="dev-social-icons">
-                            <a href="https://wa.me/573226720668" target="_blank" rel="noreferrer" title="WhatsApp" className="dev-icon-link whatsapp">
-                                <i className="bi bi-whatsapp"></i>
-                            </a>
-                            <a href="mailto:jhoanhrndz22@gmail.com" title="Enviar Correo" className="dev-icon-link email">
-                                <i className="bi bi-envelope-at-fill"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* FOOTER DINÁMICO */}
             <footer className="main-footer">
@@ -1083,18 +1067,36 @@ export default function Home() {
                         </ul>
                     </div>
                     <div className="footer-col">
-                        <h3>Dirección</h3>
-                        <p>{marketingData.config?.address || "Pereira, Colombia"}</p>
-                        {marketingData.config?.opening_hours && (
-                            <>
-                                <h3>Horarios</h3>
-                                <p style={{ whiteSpace: 'pre-line' }}>{marketingData.config.opening_hours}</p>
-                            </>
-                        )}
+                        <div className="mobile-side-by-side">
+                            <div className="info-block">
+                                <h3>Dirección</h3>
+                                <p>{marketingData.config?.address || "Pereira, Colombia"}</p>
+                            </div>
+                            {marketingData.config?.opening_hours && (
+                                <div className="info-block">
+                                    <h3>Horarios</h3>
+                                    <p style={{ whiteSpace: 'pre-line' }}>{marketingData.config.opening_hours}</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="footer-bottom">
                     <p>&copy; {new Date().getFullYear()} {marketingData.config?.site_name || "Empapados Pop"}. Todos los derechos reservados.</p>
+                </div>
+                
+                {/* CREDITOS FINALES */}
+                <div className="footer-credits-final">
+                    <p style={{ color: '#bbb', fontSize: '12px', marginBottom: '10px' }}>Aplicación creada por:</p>
+                    <img src={jhoanLogo} alt="Developer Logo" className="dev-full-logo-footer" />
+                    <div className="dev-social-icons-footer">
+                        <a href="https://wa.me/573226720668" target="_blank" rel="noreferrer" title="WhatsApp" className="dev-icon-link whatsapp">
+                            <i className="bi bi-whatsapp"></i>
+                        </a>
+                        <a href="mailto:jhoanhrndz22@gmail.com" title="Enviar Correo" className="dev-icon-link email">
+                            <i className="bi bi-envelope-at-fill"></i>
+                        </a>
+                    </div>
                 </div>
             </footer>
 
