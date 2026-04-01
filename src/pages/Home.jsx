@@ -1044,8 +1044,8 @@ export default function Home() {
                 <div className="footer-stacked-centered">
                     <div className="footer-info-block">
                         <h3>Contacto</h3>
-                        <p>Tel: {marketingData.config?.contact_phone || "(+57) 000 0000000"}</p>
-                        <p>Email: {marketingData.config?.contact_email || "contacto@tuempresa.com"}</p>
+                        <p>Tel: {marketingData.config?.contact_phone || marketingData.config?.phone || marketingData.config?.telefono || "(+57) 000 0000000"}</p>
+                        <p>Email: {marketingData.config?.contact_email || marketingData.config?.email || marketingData.config?.correo || "contacto@tuempresa.com"}</p>
                     </div>
 
                     <div className="footer-info-block">
