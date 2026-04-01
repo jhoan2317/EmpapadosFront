@@ -1048,8 +1048,8 @@ export default function Home() {
                 <div className="footer-stacked-centered">
                     <div className="footer-info-block">
                         <h3>Contacto</h3>
-                        <p>Tel: {marketingData.config?.phone || "(+57) 000 0000000"}</p>
-                        <p>Email: {marketingData.config?.email || "contacto@tuempresa.com"}</p>
+                        <p>Tel: {marketingData.config?.contact_phone || "(+57) 000 0000000"}</p>
+                        <p>Email: {marketingData.config?.contact_email || "contacto@tuempresa.com"}</p>
                     </div>
 
                     <div className="footer-info-block">
@@ -1065,15 +1065,15 @@ export default function Home() {
                     )}
 
                     {/* REDES SOCIALES */}
-                    {(marketingData.config?.social_instagram || marketingData.config?.social_facebook) && (
+                    {(marketingData.config?.instagram_url || marketingData.config?.facebook_url) && (
                         <div className="footer-info-block mt-2">
                             <h3 className="mb-2">Síguenos</h3>
                             <div className="social-links justify-content-center">
-                                {marketingData.config?.social_instagram && (
-                                    <a href={marketingData.config.social_instagram} target="_blank" rel="noreferrer"><i className="bi bi-instagram"></i></a>
+                                {marketingData.config?.instagram_url && (
+                                    <a href={marketingData.config.instagram_url} target="_blank" rel="noreferrer"><i className="bi bi-instagram"></i></a>
                                 )}
-                                {marketingData.config?.social_facebook && (
-                                    <a href={marketingData.config.social_facebook} target="_blank" rel="noreferrer"><i className="bi bi-facebook"></i></a>
+                                {marketingData.config?.facebook_url && (
+                                    <a href={marketingData.config.facebook_url} target="_blank" rel="noreferrer"><i className="bi bi-facebook"></i></a>
                                 )}
                             </div>
                         </div>
