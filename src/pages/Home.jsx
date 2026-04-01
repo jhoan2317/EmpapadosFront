@@ -1082,10 +1082,6 @@ export default function Home() {
                         </div>
                     )}
                 </div>
-                <div className="footer-bottom">
-                    <p>&copy; {new Date().getFullYear()} {marketingData.config?.site_name || "Empapados Pop"}. Todos los derechos reservados.</p>
-                </div>
-                
                 {/* CREDITOS FINALES */}
                 <div className="footer-credits-final">
                     <p style={{ color: '#bbb', fontSize: '12px', marginBottom: '10px' }}>Aplicación creada por:</p>
@@ -1098,6 +1094,10 @@ export default function Home() {
                             <i className="bi bi-envelope-at-fill"></i>
                         </a>
                     </div>
+                </div>
+
+                <div className="footer-bottom">
+                    <p>&copy; {new Date().getFullYear()} {marketingData.config?.site_name || "Empapados Pop"}. Todos los derechos reservados.</p>
                 </div>
             </footer>
 
