@@ -1376,24 +1376,26 @@ body {
     border-top: 1px solid #f0f0f0;
 }
 
-.mobile-side-by-side {
+.footer-main-row {
     display: flex;
+    justify-content: space-around;
     flex-wrap: wrap;
     gap: 30px;
-    justify-content: flex-start;
+    width: 100%;
 }
 
-.info-block {
-    flex: 1;
-    min-width: 120px;
+.footer-hours-centered {
+    width: 100%;
+    text-align: center;
+    margin-top: 30px;
 }
 
-@media (max-width: 768px) {
-    .mobile-side-by-side {
-        justify-content: center;
-        text-align: center;
-        gap: 20px;
-    }
+.footer-hours-centered h3 {
+    color: var(--secondary);
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    text-transform: uppercase;
 }
 
 .footer-credits-final {

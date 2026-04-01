@@ -1046,40 +1046,41 @@ export default function Home() {
             {/* FOOTER DINÁMICO */}
             <footer className="main-footer">
                 <div className="footer-grid">
-                    <div className="footer-col">
-                        <h3>{marketingData.config?.site_name || "Empapados Pop"}</h3>
-                        <p>{marketingData.config?.footer_text || "El sabor auténtico de la calle."}</p>
-                        <div className="social-links">
-                            {marketingData.config?.instagram_url && (
-                                <a href={marketingData.config.instagram_url} target="_blank" rel="noreferrer"><i className="bi bi-instagram"></i></a>
-                            )}
-                            {marketingData.config?.facebook_url && (
-                                <a href={marketingData.config.facebook_url} target="_blank" rel="noreferrer"><i className="bi bi-facebook"></i></a>
-                            )}
+                    {/* FILA SUPERIOR: CONTACTO Y DIRECCIÓN */}
+                    <div className="footer-main-row">
+                        <div className="footer-col text-center">
+                            <h3>Contacto</h3>
+                            <p>Tel: {marketingData.config?.contact_phone || "(+57) 322 6720668"}</p>
+                            <p>Email: {marketingData.config?.contact_email || "jhoanhrndz22@gmail.com"}</p>
+                        </div>
+                        <div className="footer-col text-center">
+                            <h3>Dirección</h3>
+                            <p>{marketingData.config?.address || "Pereira, Colombia"}</p>
                         </div>
                     </div>
-                    <div className="footer-col">
-                        <h3>Contacto</h3>
-                        <ul>
-                            {marketingData.config?.contact_phone && <li><i className="bi bi-telephone"></i> {marketingData.config.contact_phone}</li>}
-                            {marketingData.config?.contact_whatsapp && <li><i className="bi bi-whatsapp"></i> {marketingData.config.contact_whatsapp}</li>}
-                            {marketingData.config?.contact_email && <li><i className="bi bi-envelope"></i> {marketingData.config.contact_email}</li>}
-                        </ul>
-                    </div>
-                    <div className="footer-col">
-                        <div className="mobile-side-by-side">
-                            <div className="info-block">
-                                <h3>Dirección</h3>
-                                <p>{marketingData.config?.address || "Pereira, Colombia"}</p>
+
+                    {/* FILA INFERIOR: HORARIOS CENTRADO */}
+                    {marketingData.config?.opening_hours && (
+                        <div className="footer-hours-centered">
+                            <h3>Horarios</h3>
+                            <p style={{ whiteSpace: 'pre-line' }}>{marketingData.config.opening_hours}</p>
+                        </div>
+                    )}
+
+                    {/* REDES SOCIALES SI LAS HAY */}
+                    {(marketingData.config?.social_instagram || marketingData.config?.social_facebook) && (
+                        <div className="footer-col text-center mt-3">
+                            <h3>Síguenos</h3>
+                            <div className="social-links justify-content-center">
+                                {marketingData.config?.social_instagram && (
+                                    <a href={marketingData.config.social_instagram} target="_blank" rel="noreferrer"><i className="bi bi-instagram"></i></a>
+                                )}
+                                {marketingData.config?.social_facebook && (
+                                    <a href={marketingData.config.social_facebook} target="_blank" rel="noreferrer"><i className="bi bi-facebook"></i></a>
+                                )}
                             </div>
-                            {marketingData.config?.opening_hours && (
-                                <div className="info-block">
-                                    <h3>Horarios</h3>
-                                    <p style={{ whiteSpace: 'pre-line' }}>{marketingData.config.opening_hours}</p>
-                                </div>
-                            )}
                         </div>
-                    </div>
+                    )}
                 </div>
                 <div className="footer-bottom">
                     <p>&copy; {new Date().getFullYear()} {marketingData.config?.site_name || "Empapados Pop"}. Todos los derechos reservados.</p>
