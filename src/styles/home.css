@@ -1376,31 +1376,37 @@ body {
     border-top: 1px solid #f0f0f0;
 }
 
-.footer-main-row {
+.footer-stacked-centered {
     display: flex;
-    justify-content: space-around;
-    flex-wrap: wrap;
-    gap: 30px;
-    width: 100%;
-}
-
-.footer-hours-centered {
-    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
     text-align: center;
-    margin-top: 30px;
+    width: 100%;
 }
 
-.footer-hours-centered h3 {
+.footer-info-block {
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+.footer-info-block h3 {
     color: var(--secondary);
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 800;
-    margin-bottom: 15px;
+    margin-bottom: 5px;
     text-transform: uppercase;
 }
 
+.footer-info-block p {
+    margin-bottom: 2px;
+    font-size: 14px;
+    color: #bbb;
+}
+
 .footer-credits-final {
-    margin-top: 40px;
-    padding-top: 30px;
+    margin-top: 30px;
+    padding-top: 25px;
     border-top: 1px solid #333;
     text-align: center;
     width: 100%;

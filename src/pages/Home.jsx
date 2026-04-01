@@ -1045,32 +1045,29 @@ export default function Home() {
 
             {/* FOOTER DINÁMICO */}
             <footer className="main-footer">
-                <div className="footer-grid">
-                    {/* FILA SUPERIOR: CONTACTO Y DIRECCIÓN */}
-                    <div className="footer-main-row">
-                        <div className="footer-col text-center">
-                            <h3>Contacto</h3>
-                            <p>Tel: {marketingData.config?.contact_phone || "(+57) 322 6720668"}</p>
-                            <p>Email: {marketingData.config?.contact_email || "jhoanhrndz22@gmail.com"}</p>
-                        </div>
-                        <div className="footer-col text-center">
-                            <h3>Dirección</h3>
-                            <p>{marketingData.config?.address || "Pereira, Colombia"}</p>
-                        </div>
+                <div className="footer-stacked-centered">
+                    <div className="footer-info-block">
+                        <h3>Contacto</h3>
+                        <p>Tel: {marketingData.config?.contact_phone || "(+57) 322 6720668"}</p>
+                        <p>Email: {marketingData.config?.contact_email || "jhoanhrndz22@gmail.com"}</p>
                     </div>
 
-                    {/* FILA INFERIOR: HORARIOS CENTRADO */}
+                    <div className="footer-info-block">
+                        <h3>Dirección</h3>
+                        <p>{marketingData.config?.address || "Pereira, Colombia"}</p>
+                    </div>
+
                     {marketingData.config?.opening_hours && (
-                        <div className="footer-hours-centered">
+                        <div className="footer-info-block">
                             <h3>Horarios</h3>
                             <p style={{ whiteSpace: 'pre-line' }}>{marketingData.config.opening_hours}</p>
                         </div>
                     )}
 
-                    {/* REDES SOCIALES SI LAS HAY */}
+                    {/* REDES SOCIALES */}
                     {(marketingData.config?.social_instagram || marketingData.config?.social_facebook) && (
-                        <div className="footer-col text-center mt-3">
-                            <h3>Síguenos</h3>
+                        <div className="footer-info-block mt-2">
+                            <h3 className="mb-2">Síguenos</h3>
                             <div className="social-links justify-content-center">
                                 {marketingData.config?.social_instagram && (
                                     <a href={marketingData.config.social_instagram} target="_blank" rel="noreferrer"><i className="bi bi-instagram"></i></a>
@@ -1082,6 +1079,7 @@ export default function Home() {
                         </div>
                     )}
                 </div>
+
                 {/* CREDITOS FINALES */}
                 <div className="footer-credits-final">
                     <p style={{ color: '#bbb', fontSize: '12px', marginBottom: '10px' }}>Aplicación creada por:</p>
