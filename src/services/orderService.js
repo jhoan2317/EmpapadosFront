@@ -42,6 +42,9 @@ export const getOrders = async (date = null, page = 1, type = 'todas', status = 
             return dateB.localeCompare(dateA);
         });
 
+        // Calcular el monto total de todos los pedidos que coinciden con el filtro (antes de paginar)
+        const totalAmount = orders.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
+
         const pageSize = 10;
         const startIndex = (page - 1) * pageSize;
         const paginatedResults = orders.slice(startIndex, startIndex + pageSize);
@@ -49,7 +52,8 @@ export const getOrders = async (date = null, page = 1, type = 'todas', status = 
         // Firestore handle pagination differently, but for now we return sliced local results
         return {
             results: paginatedResults,
-            count: orders.length
+            count: orders.length,
+            totalAmount: totalAmount
         };
     } catch (error) {
         console.error("Error getting orders: ", error);

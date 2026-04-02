@@ -23,6 +23,7 @@ export default function AdminReportes() {
     const [salesType, setSalesType] = useState("todas"); // todas, local, domicilio
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [totalSalesSum, setTotalSalesSum] = useState(0);
     const PAGE_SIZE = 10;
 
     useEffect(() => {
@@ -41,6 +42,7 @@ export default function AdminReportes() {
             const data = await getOrders(date, page, type, 'pagado');
             setOrders(Array.isArray(data) ? data : data.results);
             setTotalCount(data.count || (Array.isArray(data) ? data.length : 0));
+            setTotalSalesSum(data.totalAmount || 0);
         } catch (error) {
             console.error("Error cargando reportes:", error);
         } finally {
@@ -55,7 +57,7 @@ export default function AdminReportes() {
     };
 
     const filteredOrders = getFilteredOrders();
-    const totalSales = filteredOrders.reduce((acc, order) => acc + parseFloat(order.total), 0);
+    const totalSales = totalSalesSum; // Usamos el total global del servicio
 
     return (
         <div className={`dashboard-root ${collapsed ? "sidebar-collapsed" : ""}`}>
