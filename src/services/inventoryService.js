@@ -223,21 +223,38 @@ export const getMovements = async (page = 1) => {
 
 export const getInventorySummary = async () => {
     try {
-        // En un backend real haríamos agregación, aquí enviamos un resumen básico
-        const querySnapshot = await getDocs(collection(db, INVENTORY_COLLECTION));
-        const items = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        let totalItems = items.length;
-        let totalStock = items.reduce((acc, current) => acc + (Number(current.stock) || 0), 0);
-        let lowStockItems = items.filter(i => (Number(i.stock) || 0) < (Number(i.stockMinimo) || 5)).length;
+        const [inventorySnap, movementsSnap] = await Promise.all([
+            getDocs(collection(db, INVENTORY_COLLECTION)),
+            getDocs(collection(db, MOVEMENTS_COLLECTION))
+        ]);
 
-        return {
-            totalItems,
-            totalStock,
-            lowStockItems
-        };
+        const inventoryItems = inventorySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const allMovements = movementsSnap.docs.map(doc => doc.data());
+
+        const summary = inventoryItems.map(item => {
+            const itemMovements = allMovements.filter(m => m.ingrediente_id === item.id);
+            
+            const totalSalida = itemMovements
+                .filter(m => m.tipo === 'salida')
+                .reduce((acc, m) => acc + (parseFloat(m.cantidad) || 0), 0);
+
+            // Calculamos el ingreso total como Stock Actual + Salidas Totales.
+            // Esto asume que lo que tenemos hoy es el resultado de (Ingresos - Salidas).
+            const currentStock = parseFloat(item.stock) || 0;
+            const totalIngreso = currentStock + totalSalida;
+
+            return {
+                id: item.id,
+                nombre: item.nombre_ingrediente,
+                total_ingreso: totalIngreso,
+                total_salida: totalSalida,
+                unidad: item.unidad_medida || 'unidades'
+            };
+        });
+
+        return summary;
     } catch (error) {
         console.error("Error getting inventory summary: ", error);
-        throw error; // En modo local / test fallará silenciosamente si no hay data
+        return [];
     }
 };
