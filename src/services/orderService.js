@@ -19,40 +19,50 @@ const ORDERS_COLLECTION = 'pedidos';
 
 export const getOrders = async (date = null, page = 1, type = 'todas', status = null) => {
     try {
-        let q = query(collection(db, ORDERS_COLLECTION), orderBy('fecha', 'desc'));
+        // Para eficiencia, solo filtramos por fecha en la base de datos si se proporciona
+        let q = collection(db, ORDERS_COLLECTION);
+        let firestoreQuery = query(q, orderBy('fecha', 'desc'));
 
         if (date) {
-            q = query(q, where('fecha', '==', date));
-        }
-        if (type && type !== 'todas') {
-            q = query(q, where('tipo_pedido', '==', type));
-        }
-        if (status) {
-            q = query(q, where('estado', '==', status));
+            firestoreQuery = query(firestoreQuery, where('fecha', '==', date));
         }
 
-        const querySnapshot = await getDocs(q);
-        const orders = querySnapshot.docs.map(doc => ({
+        const querySnapshot = await getDocs(firestoreQuery);
+        
+        // Realizamos el filtrado de estado y tipo en JS para evitar problemas de mayúsculas/minúsculas e índices
+        let filteredOrders = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-        })).sort((a, b) => {
-            // Ordenar por createdAt (ISO string) descendentemente
+        })).filter(order => {
+            // Filtro de Estado (ej: 'pagado')
+            if (status && order.estado?.toLowerCase() !== status.toLowerCase()) return false;
+            
+            // Filtro de Tipo (local/domicilio)
+            if (type && type !== 'todas') {
+                const orderType = order.tipo_pedido || "";
+                if (orderType.toLowerCase() !== type.toLowerCase()) return false;
+            }
+            
+            return true;
+        });
+
+        // Ordenamos por tiempo de creación (más reciente primero)
+        filteredOrders.sort((a, b) => {
             const dateA = a.createdAt || a.fecha || "";
             const dateB = b.createdAt || b.fecha || "";
             return dateB.localeCompare(dateA);
         });
 
-        // Calcular el monto total de todos los pedidos que coinciden con el filtro (antes de paginar)
-        const totalAmount = orders.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
+        // Calcular el monto total de todos los pedidos filtrados (global)
+        const totalAmount = filteredOrders.reduce((sum, order) => sum + parseFloat(order.total || 0), 0);
 
         const pageSize = 10;
         const startIndex = (page - 1) * pageSize;
-        const paginatedResults = orders.slice(startIndex, startIndex + pageSize);
+        const paginatedResults = filteredOrders.slice(startIndex, startIndex + pageSize);
 
-        // Firestore handle pagination differently, but for now we return sliced local results
         return {
             results: paginatedResults,
-            count: orders.length,
+            count: filteredOrders.length,
             totalAmount: totalAmount
         };
     } catch (error) {
