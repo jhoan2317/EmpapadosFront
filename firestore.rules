@@ -10,11 +10,20 @@ service cloud.firestore {
     match /productos/{document} { allow read: if true; }
     match /categorias/{document} { allow read: if true; }
     match /galeria/{document} { allow read: if true; }
-    match /inventario/{document} { allow read: if true; }
+    match /inventario/{document} { allow read, update: if true; }
 
-    // 2. Colecciones PRIVADAS (Solo lectura/escritura para Administrador logeado)
-    match /pedidos/{document=**} { allow read, write: if request.auth != null; }
-    match /inventario/{document=**} { allow read, write: if request.auth != null; }
+    // 2. Colecciones con LECTURA PRIVADA pero CREACIÓN/ACTUALIZACIÓN LIMITADA (Para clientes)
+    match /pedidos/{document=**} { 
+      allow create, update: if true; 
+      allow read, delete: if request.auth != null; 
+    }
+    match /movimientos_inventario/{document=**} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // 3. Colecciones ESTRICTAMENTE PRIVADAS (Solo Administrador)
+    match /inventario/{document=**} { allow write: if request.auth != null; }
     match /gastos/{document=**} { allow read, write: if request.auth != null; }
     match /movimientos_caja/{document=**} { allow read, write: if request.auth != null; }
     match /reportes/{document=**} { allow read, write: if request.auth != null; }
