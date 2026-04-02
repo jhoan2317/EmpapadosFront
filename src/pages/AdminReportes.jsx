@@ -51,13 +51,8 @@ export default function AdminReportes() {
         }
     };
 
-    const getFilteredOrders = () => {
-        if (salesType === "todas") return orders;
-        return orders.filter(order => order.tipo_pedido === salesType);
-    };
-
-    const filteredOrders = getFilteredOrders();
-    const totalSales = totalSalesSum; // Usamos el total global del servicio
+    const filteredOrders = orders; // El servicio ya nos entrega las órdenes filtradas por tipo
+    const totalSales = totalSalesSum; // Usamos el total global calculado por el servicio
 
     return (
         <div className={`dashboard-root ${collapsed ? "sidebar-collapsed" : ""}`}>

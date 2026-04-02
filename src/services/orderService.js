@@ -25,7 +25,7 @@ export const getOrders = async (date = null, page = 1, type = 'todas', status = 
             q = query(q, where('fecha', '==', date));
         }
         if (type && type !== 'todas') {
-            q = query(q, where('tipo', '==', type));
+            q = query(q, where('tipo_pedido', '==', type));
         }
         if (status) {
             q = query(q, where('estado', '==', status));
