@@ -35,7 +35,12 @@ export const getOrders = async (date = null, page = 1, type = 'todas', status = 
         const orders = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-        }));
+        })).sort((a, b) => {
+            // Ordenar por createdAt (ISO string) descendentemente
+            const dateA = a.createdAt || a.fecha || "";
+            const dateB = b.createdAt || b.fecha || "";
+            return dateB.localeCompare(dateA);
+        });
 
         const pageSize = 10;
         const startIndex = (page - 1) * pageSize;
