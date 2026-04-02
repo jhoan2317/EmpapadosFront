@@ -454,7 +454,8 @@ export default function Home() {
         // Limpiamos el precio por si viene como string con puntos/comas
         let basePrice = product.precio;
         if (typeof basePrice === 'string') {
-            basePrice = basePrice.replace(/[^0-9.]/g, '');
+            // Eliminamos todo lo que no sea número para evitar problemas con puntos (miles)
+            basePrice = basePrice.replace(/\D/g, '');
         }
         const base = parseFloat(basePrice) || 0;
 
@@ -802,6 +803,13 @@ export default function Home() {
                                                     <span className="cart-item-name">{item.product.nombre}</span>
                                                     <span className="cart-item-price">${(calculateItemTotalPrice(item.product, item.personalization) * item.quantity).toLocaleString()}</span>
                                                 </div>
+                                                {item.personalization && item.personalization.length > 0 && (
+                                                    <div className="cart-item-extras" style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                                                        {item.personalization.map((opt, i) => (
+                                                            <div key={i} className="extra-tag">+ {opt}</div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 <div className="cart-item-row">
                                                     <div className="cart-qty-controls">
                                                         <button onClick={() => updateCartQty(item.id, -1)} disabled={item.quantity <= 1}>-</button>
