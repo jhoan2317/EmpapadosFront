@@ -102,13 +102,12 @@ export default function AdminPedidos() {
             showLoading(LOADING_CONFIG.TEXTS.SAVING);
             await updateOrderStatus(id, newStatus);
             
-            // Si el nuevo estado es 'entregado', descontamos del inventario
-            if (newStatus === 'entregado') {
+            // Si el nuevo estado es 'entregado' o 'pagado', descontamos del inventario
+            if (newStatus === 'entregado' || newStatus === 'pagado') {
                 try {
                     await deductInventoryFromOrder(id);
                 } catch (invError) {
                     console.error("Error al descontar inventario:", invError);
-                    // Solo mostramos alerta si es un error real, no bloqueamos la actualización de estado
                 }
             }
 
@@ -179,8 +178,8 @@ export default function AdminPedidos() {
             
             await updateOrder(editingOrder.id, updatedData);
 
-            // Si el nuevo estado es 'entregado', descontamos del inventario
-            if (editedOrderStatus === 'entregado') {
+            // Si el nuevo estado es 'entregado' o 'pagado', descontamos del inventario
+            if (editedOrderStatus === 'entregado' || editedOrderStatus === 'pagado') {
                 try {
                     await deductInventoryFromOrder(editingOrder.id);
                 } catch (invError) {
