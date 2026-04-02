@@ -3,7 +3,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 
 export const getReporteHoy = async (fecha = null) => {
     try {
-        const targetDate = fecha || new Date().toISOString().split('T')[0];
+        const targetDate = fecha || new Date().toLocaleDateString('en-CA'); // Usa formato YYYY-MM-DD local
 
         // 1. Obtener Pedidos (Ventas) del día con estado "pagado"
         const pedidosRef = collection(db, 'pedidos');

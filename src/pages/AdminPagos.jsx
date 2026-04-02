@@ -30,7 +30,7 @@ export default function AdminPagos() {
     const [collapsed, setCollapsed] = useState(true);
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA')); // YYYY-MM-DD local
 
     const [editingId, setEditingId] = useState(null);
     const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", type: "info" });
@@ -50,7 +50,7 @@ export default function AdminPagos() {
         cargo: "particular",
         descripcion: "",
         monto: "",
-        fecha: new Date().toISOString().split('T')[0]
+        fecha: new Date().toLocaleDateString('en-CA')
     });
 
     const TIPOS_PAGO = [
@@ -127,7 +127,7 @@ export default function AdminPagos() {
             cargo: "particular",
             descripcion: "",
             monto: "",
-            fecha: new Date().toISOString().split('T')[0]
+            fecha: new Date().toLocaleDateString('en-CA')
         });
         setShowModal(false);
     };
